@@ -1,7 +1,7 @@
 {
-  "name": "@openreachtech/todo-fulfill-here",
+  "name": "@openreachtech/hora-skills-renchan",
   "version": "0.0.0",
-  "description": "TODO: fulfill here",
+  "description": "Distributes the renchan backend skills used to develop with Hora Kit.",
   "type": "module",
   "main": "index.js",
   "files": [
@@ -10,6 +10,12 @@
     "!types/env/**"
   ],
   "types": "./types/index.d.ts",
+  "keywords": [
+    "hora",
+    "hora-kit",
+    "ai",
+    "renchan"
+  ],
   "scripts": {
     "l": "npm run lint",
     "lint": "eslint .",
@@ -17,14 +23,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/openreachtech/todo-fulfill-here.git"
+    "url": "git+https://github.com/openreachtech/hora-skills-renchan.git"
   },
   "author": "Open Reach Tech Inc.",
   "license": "UNLICENSED",
   "bugs": {
-    "url": "https://github.com/openreachtech/todo-fulfill-here/issues"
+    "url": "https://github.com/openreachtech/hora-skills-renchan/issues"
   },
-  "homepage": "https://github.com/openreachtech/todo-fulfill-here#readme",
+  "homepage": "https://github.com/openreachtech/hora-skills-renchan#readme",
   "dependencies": {
   },
   "devDependencies": {
