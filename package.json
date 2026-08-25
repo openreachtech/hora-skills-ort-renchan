@@ -8,6 +8,9 @@
     "docs/",
     "lib/"
   ],
+  "bin": {
+    "hora-skills-renchan": "lib/equip/hora-skills-renchan.js"
+  },
   "keywords": [
     "hora",
     "hora-kit",
