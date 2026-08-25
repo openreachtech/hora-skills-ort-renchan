@@ -3,13 +3,11 @@
   "version": "0.0.0",
   "description": "Distributes the renchan backend skills used to develop with Hora Kit.",
   "type": "module",
-  "main": "index.js",
   "files": [
-    "lib/",
-    "types/",
-    "!types/env/**"
+    "dist/",
+    "docs/",
+    "lib/"
   ],
-  "types": "./types/index.d.ts",
   "keywords": [
     "hora",
     "hora-kit",
@@ -17,8 +15,11 @@
     "renchan"
   ],
   "scripts": {
+    "build": "node .claude/skills/flatten/scripts/build.js",
     "l": "npm run lint",
     "lint": "eslint .",
+    "prepack": "npm run build",
+    "skill-names": "node .claude/skills/audit/scripts/audit.js",
     "test": "export NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\"; export NODE_ENV=development; jest"
   },
   "repository": {
