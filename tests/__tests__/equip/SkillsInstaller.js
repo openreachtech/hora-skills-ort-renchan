@@ -75,7 +75,7 @@ describe('SkillsInstaller', () => {
           {
             input: {
               manifestFile: SkillsManifestFile.create({
-                filePath: '/consumer/.hora/hora-skills-renchan.json',
+                filePath: '/consumer/.hora/hora-skills-ort-renchan.json',
                 installationPath: '.claude/skills',
               }),
             },
@@ -83,7 +83,7 @@ describe('SkillsInstaller', () => {
           {
             input: {
               manifestFile: SkillsManifestFile.create({
-                filePath: '.hora/hora-skills-renchan.json',
+                filePath: '.hora/hora-skills-ort-renchan.json',
                 installationPath: 'tools/skills',
               }),
             },
@@ -144,7 +144,7 @@ describe('SkillsInstaller', () => {
             sourceDirectoryPath: '/package/dist/skills',
           },
           expected: {
-            filePath: '/consumer/.hora/hora-skills-renchan.json',
+            filePath: '/consumer/.hora/hora-skills-ort-renchan.json',
             installationPath: '.claude/skills',
           },
         },
@@ -155,7 +155,7 @@ describe('SkillsInstaller', () => {
             sourceDirectoryPath: '/package/dist/skills',
           },
           expected: {
-            filePath: '/tmp/.hora/hora-skills-renchan.json',
+            filePath: '/tmp/.hora/hora-skills-ort-renchan.json',
             installationPath: 'skills',
           },
         },
@@ -232,7 +232,7 @@ describe('SkillsInstaller', () => {
         expect(received)
           .toEqual([
             '.hora',
-            'hora-skills-renchan.json',
+            'hora-skills-ort-renchan.json',
           ])
       })
     })
@@ -266,14 +266,14 @@ describe('SkillsInstaller', () => {
             workingDirectoryPath: '/consumer',
             targetDirectoryPath: '/consumer/.claude/skills',
           },
-          expected: '/consumer/.hora/hora-skills-renchan.json',
+          expected: '/consumer/.hora/hora-skills-ort-renchan.json',
         },
         {
           input: {
             workingDirectoryPath: '/tmp',
             targetDirectoryPath: '/tmp/skills/',
           },
-          expected: '/tmp/.hora/hora-skills-renchan.json',
+          expected: '/tmp/.hora/hora-skills-ort-renchan.json',
         },
       ]
 
@@ -365,12 +365,12 @@ describe('SkillsInstaller', () => {
       const cases = [
         {
           input: {
-            skillName: 'hb-naming',
+            skillName: 'hor-naming',
           },
         },
         {
           input: {
-            skillName: 'hb-cp-table',
+            skillName: 'hor-cp-table',
           },
         },
         {
@@ -417,7 +417,7 @@ describe('SkillsInstaller', () => {
         },
         {
           input: {
-            skillName: 'hb-naming/SKILL.md',
+            skillName: 'hor-naming/SKILL.md',
           },
         },
         {
@@ -487,15 +487,15 @@ describe('SkillsInstaller', () => {
         {
           override: {
             removedSkillNames: [
-              'hb-cp-table',
+              'hor-cp-table',
             ],
             installedSkillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
           expected: {
             skillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
         },
@@ -537,18 +537,18 @@ describe('SkillsInstaller', () => {
         {
           override: {
             removedSkillNames: [
-              'hb-cp-table',
+              'hor-cp-table',
             ],
             installedSkillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
           expected: {
             removedSkillNames: [
-              'hb-cp-table',
+              'hor-cp-table',
             ],
             installedSkillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
         },
@@ -556,15 +556,15 @@ describe('SkillsInstaller', () => {
           override: {
             removedSkillNames: [],
             installedSkillNames: [
-              'hb-naming',
-              'hb-jsdoc',
+              'hor-naming',
+              'hor-jsdoc',
             ],
           },
           expected: {
             removedSkillNames: [],
             installedSkillNames: [
-              'hb-naming',
-              'hb-jsdoc',
+              'hor-naming',
+              'hor-jsdoc',
             ],
           },
         },
@@ -600,20 +600,20 @@ describe('SkillsInstaller', () => {
         {
           override: {
             recordedSkillNames: [
-              'hb-query-resolver',
-              'hb-stub-api',
+              'hor-query-resolver',
+              'hor-stub-api',
             ],
           },
           expected: [
             [
-              '/consumer/.claude/skills/hb-query-resolver',
+              '/consumer/.claude/skills/hor-query-resolver',
               {
                 recursive: true,
                 force: true,
               },
             ],
             [
-              '/consumer/.claude/skills/hb-stub-api',
+              '/consumer/.claude/skills/hor-stub-api',
               {
                 recursive: true,
                 force: true,
@@ -650,11 +650,11 @@ describe('SkillsInstaller', () => {
         {
           override: {
             recordedSkillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
           expected: [
-            'hb-query-resolver',
+            'hor-query-resolver',
           ],
         },
         {
@@ -690,28 +690,28 @@ describe('SkillsInstaller', () => {
           override: {
             recordedSkillNames: [],
             distributedSkillNames: [
-              'hb-query-resolver',
-              'hb-naming',
+              'hor-query-resolver',
+              'hor-naming',
             ],
             directoryNames: [
-              'hb-naming',
-              'hb-own-skill',
+              'hor-naming',
+              'hor-own-skill',
               'my-own-skill',
             ],
           },
           expected: [
-            'hb-naming',
+            'hor-naming',
           ],
         },
         {
           override: {
             recordedSkillNames: [],
             distributedSkillNames: [
-              'hb-query-resolver',
-              'hb-naming',
+              'hor-query-resolver',
+              'hor-naming',
             ],
             directoryNames: [
-              'hb-own-skill',
+              'hor-own-skill',
               'my-own-skill',
             ],
           },
@@ -749,12 +749,12 @@ describe('SkillsInstaller', () => {
           override: {
             recordedSkillNames: [
               '../../../canary',
-              'hb-naming',
+              'hor-naming',
             ],
           },
           expected: [
             [
-              '/consumer/.claude/skills/hb-naming',
+              '/consumer/.claude/skills/hor-naming',
               {
                 recursive: true,
                 force: true,
@@ -799,36 +799,36 @@ describe('SkillsInstaller', () => {
         {
           override: {
             recordedSkillNames: [
-              'hb-cp-table',
+              'hor-cp-table',
             ],
             distributedSkillNames: [
-              'hb-query-resolver',
-              'hb-naming',
+              'hor-query-resolver',
+              'hor-naming',
             ],
             directoryNames: [
-              'hb-naming',
-              'hb-own-skill',
+              'hor-naming',
+              'hor-own-skill',
             ],
           },
           expected: [
-            'hb-cp-table',
-            'hb-naming',
+            'hor-cp-table',
+            'hor-naming',
           ],
         },
         {
           override: {
             recordedSkillNames: [
-              'hb-naming',
+              'hor-naming',
             ],
             distributedSkillNames: [
-              'hb-naming',
+              'hor-naming',
             ],
             directoryNames: [
-              'hb-naming',
+              'hor-naming',
             ],
           },
           expected: [
-            'hb-naming',
+            'hor-naming',
           ],
         },
         {
@@ -836,7 +836,7 @@ describe('SkillsInstaller', () => {
             recordedSkillNames: [],
             distributedSkillNames: [],
             directoryNames: [
-              'hb-own-skill',
+              'hor-own-skill',
             ],
           },
           expected: [],
@@ -869,14 +869,14 @@ describe('SkillsInstaller', () => {
         {
           override: {
             recordedSkillNames: [
-              'hb-naming',
+              'hor-naming',
               '../../../canary',
             ],
             distributedSkillNames: [],
             directoryNames: [],
           },
           expected: [
-            'hb-naming',
+            'hor-naming',
           ],
         },
         {
@@ -885,7 +885,7 @@ describe('SkillsInstaller', () => {
               '..',
               '.',
               '',
-              'hb-naming/SKILL.md',
+              'hor-naming/SKILL.md',
             ],
             distributedSkillNames: [],
             directoryNames: [],
@@ -924,40 +924,40 @@ describe('SkillsInstaller', () => {
         {
           override: {
             distributedSkillNames: [
-              'hb-query-resolver',
-              'hb-jsdoc',
-              'hb-naming',
+              'hor-query-resolver',
+              'hor-jsdoc',
+              'hor-naming',
             ],
             directoryNames: [
-              'hb-naming',
-              'hb-own-skill',
+              'hor-naming',
+              'hor-own-skill',
               'my-own-skill',
             ],
           },
           expected: [
-            'hb-naming',
+            'hor-naming',
           ],
         },
         {
           override: {
             distributedSkillNames: [
-              'hb-query-resolver',
-              'hb-naming',
+              'hor-query-resolver',
+              'hor-naming',
             ],
             directoryNames: [
-              'hb-query-resolver',
-              'hb-naming',
+              'hor-query-resolver',
+              'hor-naming',
             ],
           },
           expected: [
-            'hb-query-resolver',
-            'hb-naming',
+            'hor-query-resolver',
+            'hor-naming',
           ],
         },
         {
           override: {
             distributedSkillNames: [
-              'hb-naming',
+              'hor-naming',
             ],
             directoryNames: [],
           },
@@ -994,11 +994,11 @@ describe('SkillsInstaller', () => {
           override: {
             dirents: [
               {
-                name: 'hb-cp-table',
+                name: 'hor-cp-table',
                 isDirectory: () => true,
               },
               {
-                name: 'hb-query-resolver',
+                name: 'hor-query-resolver',
                 isDirectory: () => true,
               },
               {
@@ -1008,8 +1008,8 @@ describe('SkillsInstaller', () => {
             ],
           },
           expected: [
-            'hb-cp-table',
-            'hb-query-resolver',
+            'hor-cp-table',
+            'hor-query-resolver',
           ],
         },
         {
@@ -1071,15 +1071,15 @@ describe('SkillsInstaller', () => {
       const cases = [
         {
           input: {
-            skillName: 'hb-query-resolver',
+            skillName: 'hor-query-resolver',
           },
-          expected: '/consumer/.claude/skills/hb-query-resolver',
+          expected: '/consumer/.claude/skills/hor-query-resolver',
         },
         {
           input: {
-            skillName: 'hb-naming',
+            skillName: 'hor-naming',
           },
-          expected: '/consumer/.claude/skills/hb-naming',
+          expected: '/consumer/.claude/skills/hor-naming',
         },
       ]
 
@@ -1105,15 +1105,15 @@ describe('SkillsInstaller', () => {
       const cases = [
         {
           input: {
-            skillName: 'hb-query-resolver',
+            skillName: 'hor-query-resolver',
           },
-          expected: '/package/dist/skills/hb-query-resolver',
+          expected: '/package/dist/skills/hor-query-resolver',
         },
         {
           input: {
-            skillName: 'hb-naming',
+            skillName: 'hor-naming',
           },
-          expected: '/package/dist/skills/hb-naming',
+          expected: '/package/dist/skills/hor-naming',
         },
       ]
 
@@ -1140,12 +1140,12 @@ describe('SkillsInstaller', () => {
         {
           override: {
             distributedSkillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
           expected: [
-            '/package/dist/skills/hb-query-resolver',
-            '/consumer/.claude/skills/hb-query-resolver',
+            '/package/dist/skills/hor-query-resolver',
+            '/consumer/.claude/skills/hor-query-resolver',
             {
               recursive: true,
             },
@@ -1154,12 +1154,12 @@ describe('SkillsInstaller', () => {
         {
           override: {
             distributedSkillNames: [
-              'hb-naming',
+              'hor-naming',
             ],
           },
           expected: [
-            '/package/dist/skills/hb-naming',
-            '/consumer/.claude/skills/hb-naming',
+            '/package/dist/skills/hor-naming',
+            '/consumer/.claude/skills/hor-naming',
             {
               recursive: true,
             },
@@ -1290,13 +1290,13 @@ describe('SkillsInstaller', () => {
           },
           input: {
             skillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
           expected: {
             version: '0.0.1',
             skillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
         },
@@ -1411,12 +1411,12 @@ describe('SkillsInstaller', () => {
         {
           override: {
             removedSkillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
           expected: {
             removedSkillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
         },

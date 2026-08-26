@@ -363,7 +363,7 @@ describe('HoraSkillsCli', () => {
           override: {
             installResult: {
               installedSkillNames: [
-                'hb-query-resolver',
+                'hor-query-resolver',
               ],
               removedSkillNames: [],
             },
@@ -374,11 +374,11 @@ describe('HoraSkillsCli', () => {
           override: {
             installResult: {
               installedSkillNames: [
-                'hb-naming',
-                'hb-jsdoc',
+                'hor-naming',
+                'hor-jsdoc',
               ],
               removedSkillNames: [
-                'hb-css',
+                'hor-css',
               ],
             },
           },
@@ -1166,7 +1166,7 @@ describe('HoraSkillsCli', () => {
               'install',
             ],
           },
-          expected: '/consumer/.hora/hora-skills-renchan.json',
+          expected: '/consumer/.hora/hora-skills-ort-renchan.json',
         },
         {
           input: {
@@ -1176,7 +1176,7 @@ describe('HoraSkillsCli', () => {
               'tools/skills',
             ],
           },
-          expected: '/consumer/.hora/hora-skills-renchan.json',
+          expected: '/consumer/.hora/hora-skills-ort-renchan.json',
         },
       ]
 
@@ -1206,17 +1206,17 @@ describe('HoraSkillsCli', () => {
             ],
           },
           expected: [
-            '/consumer/.hora/hora-skills-renchan.json',
+            '/consumer/.hora/hora-skills-ort-renchan.json',
           ],
         },
         {
           override: {
             linkedPaths: [
-              '/consumer/.hora/hora-skills-renchan.json',
+              '/consumer/.hora/hora-skills-ort-renchan.json',
             ],
           },
           expected: [
-            '/consumer/.hora/hora-skills-renchan.json',
+            '/consumer/.hora/hora-skills-ort-renchan.json',
           ],
         },
         {
@@ -1254,10 +1254,10 @@ describe('HoraSkillsCli', () => {
         {
           override: {
             linkedManifestFilePaths: [
-              '/consumer/.hora/hora-skills-renchan.json',
+              '/consumer/.hora/hora-skills-ort-renchan.json',
             ],
           },
-          expected: '/consumer/.hora/hora-skills-renchan.json is reached through a symbolic link.',
+          expected: '/consumer/.hora/hora-skills-ort-renchan.json is reached through a symbolic link.',
         },
       ]
 
@@ -1297,7 +1297,7 @@ describe('HoraSkillsCli', () => {
         {
           override: {
             distributedSkillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
           expected: '1 skills distributed',
@@ -1305,8 +1305,8 @@ describe('HoraSkillsCli', () => {
         {
           override: {
             distributedSkillNames: [
-              'hb-query-resolver',
-              'hb-stub-api',
+              'hor-query-resolver',
+              'hor-stub-api',
             ],
           },
           expected: '2 skills distributed',
@@ -1348,7 +1348,7 @@ describe('HoraSkillsCli', () => {
           override: {
             uninstallResult: {
               removedSkillNames: [
-                'hb-query-resolver',
+                'hor-query-resolver',
               ],
             },
           },
