@@ -26,7 +26,7 @@ describe('Skill name pattern', () => {
       const content = readFileSync(join(repoRoot, scriptPath), 'utf8')
 
       expect(content)
-        .toContain('const namePattern = /^h[cbf]-[a-z0-9-]{1,61}$/u')
+        .toContain('const namePattern = /^ho[crf]-[a-z0-9-]{1,60}$/u')
     })
   })
 })
