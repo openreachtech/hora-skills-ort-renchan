@@ -62,3 +62,6 @@ jobs:
         env:
           NODE_ENV: development
         run: npm test
+
+      - name: 🏷️ Skill names
+        run: npm run skill-names
