@@ -10,17 +10,17 @@ describe('SkillsManifestFile', () => {
         const cases = [
           {
             input: {
-              filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+              filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
               installationPath: '.claude/skills',
             },
-            expected: '/tmp/app/.hora/hora-skills-renchan.json',
+            expected: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           },
           {
             input: {
-              filePath: '.hora/hora-skills-renchan.json',
+              filePath: '.hora/hora-skills-ort-renchan.json',
               installationPath: 'tools/skills',
             },
-            expected: '.hora/hora-skills-renchan.json',
+            expected: '.hora/hora-skills-ort-renchan.json',
           },
         ]
 
@@ -36,14 +36,14 @@ describe('SkillsManifestFile', () => {
         const cases = [
           {
             input: {
-              filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+              filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
               installationPath: '.claude/skills',
             },
             expected: '.claude/skills',
           },
           {
             input: {
-              filePath: '.hora/hora-skills-renchan.json',
+              filePath: '.hora/hora-skills-ort-renchan.json',
               installationPath: 'tools/skills',
             },
             expected: 'tools/skills',
@@ -67,13 +67,13 @@ describe('SkillsManifestFile', () => {
       const cases = [
         {
           input: {
-            filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+            filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
             installationPath: '.claude/skills',
           },
         },
         {
           input: {
-            filePath: '.hora/hora-skills-renchan.json',
+            filePath: '.hora/hora-skills-ort-renchan.json',
             installationPath: 'tools/skills',
           },
         },
@@ -91,13 +91,13 @@ describe('SkillsManifestFile', () => {
       const cases = [
         {
           tally: {
-            filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+            filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
             installationPath: '.claude/skills',
           },
         },
         {
           tally: {
-            filePath: '.hora/hora-skills-renchan.json',
+            filePath: '.hora/hora-skills-ort-renchan.json',
             installationPath: 'tools/skills',
           },
         },
@@ -120,7 +120,7 @@ describe('SkillsManifestFile', () => {
     describe('when called as is', () => {
       test('should be fixed value', () => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -138,7 +138,7 @@ describe('SkillsManifestFile', () => {
     describe('when called as is', () => {
       test('should be fixed value', () => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -162,14 +162,14 @@ describe('SkillsManifestFile', () => {
               installations: {
                 '.claude/skills': {
                   skillNames: [
-                    'hb-query-resolver',
+                    'hor-query-resolver',
                   ],
                 },
               },
             },
           },
           expected: [
-            'hb-query-resolver',
+            'hor-query-resolver',
           ],
         },
         {
@@ -192,26 +192,26 @@ describe('SkillsManifestFile', () => {
               installations: {
                 '.claude/skills': {
                   skillNames: [
-                    'hb-naming',
+                    'hor-naming',
                   ],
                 },
                 'tools/skills': {
                   skillNames: [
-                    'hb-query-resolver',
+                    'hor-query-resolver',
                   ],
                 },
               },
             },
           },
           expected: [
-            'hb-naming',
+            'hor-naming',
           ],
         },
       ]
 
       test.each(cases)('installations: $override.manifestHash.installations', ({ override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -254,7 +254,7 @@ describe('SkillsManifestFile', () => {
               installations: {
                 'tools/skills': {
                   skillNames: [
-                    'hb-query-resolver',
+                    'hor-query-resolver',
                   ],
                 },
               },
@@ -276,7 +276,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('manifestHash: $override.manifestHash', ({ override }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -294,7 +294,7 @@ describe('SkillsManifestFile', () => {
       const cases = [
         {
           override: {
-            skillNames: 'hb-naming',
+            skillNames: 'hor-naming',
           },
         },
         {
@@ -310,7 +310,7 @@ describe('SkillsManifestFile', () => {
         {
           override: {
             skillNames: {
-              0: 'hb-naming',
+              0: 'hor-naming',
             },
           },
         },
@@ -318,7 +318,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('skillNames: $override.skillNames', ({ override }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -344,14 +344,14 @@ describe('SkillsManifestFile', () => {
         {
           override: {
             skillNames: [
-              'hb-naming',
+              'hor-naming',
               1,
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
           expected: [
-            'hb-naming',
-            'hb-query-resolver',
+            'hor-naming',
+            'hor-query-resolver',
           ],
         },
         {
@@ -359,10 +359,10 @@ describe('SkillsManifestFile', () => {
             skillNames: [
               null,
               {
-                skillName: 'hb-naming',
+                skillName: 'hor-naming',
               },
               [
-                'hb-naming',
+                'hor-naming',
               ],
             ],
           },
@@ -372,7 +372,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('skillNames: $override.skillNames', ({ override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -406,7 +406,7 @@ describe('SkillsManifestFile', () => {
               installations: {
                 '.claude/skills': {
                   skillNames: [
-                    'hb-naming',
+                    'hor-naming',
                   ],
                 },
               },
@@ -414,7 +414,7 @@ describe('SkillsManifestFile', () => {
           },
           expected: {
             skillNames: [
-              'hb-naming',
+              'hor-naming',
             ],
           },
         },
@@ -422,7 +422,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('installations: $override.manifestHash.installations', ({ override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -459,7 +459,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('manifestHash: $override.manifestHash', ({ override }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -486,12 +486,12 @@ describe('SkillsManifestFile', () => {
               installations: {
                 '.claude/skills': {
                   skillNames: [
-                    'hb-naming',
+                    'hor-naming',
                   ],
                 },
                 'tools/skills': {
                   skillNames: [
-                    'hb-query-resolver',
+                    'hor-query-resolver',
                   ],
                 },
               },
@@ -500,12 +500,12 @@ describe('SkillsManifestFile', () => {
           expected: {
             '.claude/skills': {
               skillNames: [
-                'hb-naming',
+                'hor-naming',
               ],
             },
             'tools/skills': {
               skillNames: [
-                'hb-query-resolver',
+                'hor-query-resolver',
               ],
             },
           },
@@ -514,7 +514,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('installations: $override.manifestHash.installations', ({ override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -546,7 +546,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('manifestHash: $override.manifestHash', ({ override }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -568,14 +568,14 @@ describe('SkillsManifestFile', () => {
       const cases = [
         {
           override: {
-            content: '{"version":"0.0.1","installations":{".claude/skills":{"skillNames":["hb-query-resolver"]}}}',
+            content: '{"version":"0.0.1","installations":{".claude/skills":{"skillNames":["hor-query-resolver"]}}}',
           },
           expected: {
             version: '0.0.1',
             installations: {
               '.claude/skills': {
                 skillNames: [
-                  'hb-query-resolver',
+                  'hor-query-resolver',
                 ],
               },
             },
@@ -594,7 +594,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('content: $override.content', ({ override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -613,7 +613,7 @@ describe('SkillsManifestFile', () => {
     describe('should be null when the manifest is absent', () => {
       test('when the file does not exist', () => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -643,7 +643,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('content: $override.content', ({ override }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -669,7 +669,7 @@ describe('SkillsManifestFile', () => {
           input: {
             version: '0.0.1',
             skillNames: [
-              'hb-query-resolver',
+              'hor-query-resolver',
             ],
           },
           override: {
@@ -680,7 +680,7 @@ describe('SkillsManifestFile', () => {
             installations: {
               '.claude/skills': {
                 skillNames: [
-                  'hb-query-resolver',
+                  'hor-query-resolver',
                 ],
               },
             },
@@ -707,7 +707,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('version: $input.version', ({ input, override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -732,14 +732,14 @@ describe('SkillsManifestFile', () => {
           input: {
             version: '0.0.1',
             skillNames: [
-              'hb-naming',
+              'hor-naming',
             ],
           },
           override: {
             installationHash: {
               'tools/skills': {
                 skillNames: [
-                  'hb-query-resolver',
+                  'hor-query-resolver',
                 ],
               },
             },
@@ -749,12 +749,12 @@ describe('SkillsManifestFile', () => {
             installations: {
               'tools/skills': {
                 skillNames: [
-                  'hb-query-resolver',
+                  'hor-query-resolver',
                 ],
               },
               '.claude/skills': {
                 skillNames: [
-                  'hb-naming',
+                  'hor-naming',
                 ],
               },
             },
@@ -764,7 +764,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('version: $input.version', ({ input, override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -789,14 +789,14 @@ describe('SkillsManifestFile', () => {
           input: {
             version: '0.0.2',
             skillNames: [
-              'hb-naming',
+              'hor-naming',
             ],
           },
           override: {
             installationHash: {
               '.claude/skills': {
                 skillNames: [
-                  'hb-cp-table',
+                  'hor-cp-table',
                 ],
               },
             },
@@ -806,7 +806,7 @@ describe('SkillsManifestFile', () => {
             installations: {
               '.claude/skills': {
                 skillNames: [
-                  'hb-naming',
+                  'hor-naming',
                 ],
               },
             },
@@ -816,7 +816,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('version: $input.version', ({ input, override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -848,15 +848,15 @@ describe('SkillsManifestFile', () => {
               installations: {
                 '.claude/skills': {
                   skillNames: [
-                    'hb-query-resolver',
+                    'hor-query-resolver',
                   ],
                 },
               },
             },
           },
           expected: [
-            '/tmp/app/.hora/hora-skills-renchan.json',
-            '{\n  "version": "0.0.1",\n  "installations": {\n    ".claude/skills": {\n      "skillNames": [\n        "hb-query-resolver"\n      ]\n    }\n  }\n}\n',
+            '/tmp/app/.hora/hora-skills-ort-renchan.json',
+            '{\n  "version": "0.0.1",\n  "installations": {\n    ".claude/skills": {\n      "skillNames": [\n        "hor-query-resolver"\n      ]\n    }\n  }\n}\n',
           ],
         },
         {
@@ -867,7 +867,7 @@ describe('SkillsManifestFile', () => {
             },
           },
           expected: [
-            '/tmp/app/.hora/hora-skills-renchan.json',
+            '/tmp/app/.hora/hora-skills-ort-renchan.json',
             '{\n  "version": null,\n  "installations": {}\n}\n',
           ],
         },
@@ -875,7 +875,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('version: $input.manifestHash.version', ({ input, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -912,7 +912,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('version: $input.manifestHash.version', ({ input, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -947,7 +947,7 @@ describe('SkillsManifestFile', () => {
             },
           },
           expected: [
-            '/tmp/app/.hora/hora-skills-renchan.json',
+            '/tmp/app/.hora/hora-skills-ort-renchan.json',
             {
               force: true,
             },
@@ -957,7 +957,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('installations: $override.manifestHash.installations', ({ override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -986,7 +986,7 @@ describe('SkillsManifestFile', () => {
                 },
                 'tools/skills': {
                   skillNames: [
-                    'hb-query-resolver',
+                    'hor-query-resolver',
                   ],
                 },
               },
@@ -998,7 +998,7 @@ describe('SkillsManifestFile', () => {
               installations: {
                 'tools/skills': {
                   skillNames: [
-                    'hb-query-resolver',
+                    'hor-query-resolver',
                   ],
                 },
               },
@@ -1009,7 +1009,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('installations: $override.manifestHash.installations', ({ override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -1034,7 +1034,7 @@ describe('SkillsManifestFile', () => {
     describe('should do nothing when no manifest is readable', () => {
       test('when the manifest is absent', () => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
@@ -1071,7 +1071,7 @@ describe('SkillsManifestFile', () => {
               },
               'tools/skills': {
                 skillNames: [
-                  'hb-query-resolver',
+                  'hor-query-resolver',
                 ],
               },
             },
@@ -1079,7 +1079,7 @@ describe('SkillsManifestFile', () => {
           expected: {
             'tools/skills': {
               skillNames: [
-                'hb-query-resolver',
+                'hor-query-resolver',
               ],
             },
           },
@@ -1104,7 +1104,7 @@ describe('SkillsManifestFile', () => {
 
       test.each(cases)('installationHash: $override.installationHash', ({ override, expected }) => {
         const manifestFile = SkillsManifestFile.create({
-          filePath: '/tmp/app/.hora/hora-skills-renchan.json',
+          filePath: '/tmp/app/.hora/hora-skills-ort-renchan.json',
           installationPath: '.claude/skills',
         })
 
