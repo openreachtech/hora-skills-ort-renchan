@@ -89,3 +89,14 @@ Each skill lives at `kit/skills/backend/<name>/`, one level under the domain dir
 | :-- | :-- |
 | `hor-backend-testing` | Where a test file goes (`tests/__tests__` vs `tests/_orders`), how run order among DB-writing tests is guaranteed, how to run the suite, and the purity rules for tests and doubles. |
 | `hor-build-e2e-test-environment` | Build, run and debug the hand-operated local E2E stack under `e2e/docker/` — its containers, the reverse-proxy edge where production has one, its seed set, and the `up`/`start`/`seed`/`clean`/`down` scripts. |
+---
+
+## Installing them
+
+```sh
+npm install -D @openreachtech/hora-skills-ort-renchan
+npx --no hora-skills-ort-renchan install
+```
+
+The [README](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/README.md) covers the `postinstall` hook, installing more than one domain into the same `.claude/skills/`, and keeping an installation current.
+

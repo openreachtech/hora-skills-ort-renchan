@@ -89,3 +89,14 @@
 | :-- | :-- |
 | `hor-backend-testing` | テストファイルの配置(DB 書き込みなしは `tests/__tests__`、ありは `tests/_orders`)、DB 書き込みテストの実行順の保証、実行方法、テストとダブルの純粋性ルール。 |
 | `hor-build-e2e-test-environment` | `e2e/docker/` 配下の手動操作用ローカル E2E 環境の構築・実行・デバッグ。コンテナ構成、本番にリバースプロキシがある場合はその層、専用シードセット、`up`/`start`/`seed`/`clean`/`down` スクリプト。 |
+---
+
+## 導入
+
+```sh
+npm install -D @openreachtech/hora-skills-ort-renchan
+npx --no hora-skills-ort-renchan install
+```
+
+`postinstall` フックの宣言、複数ドメインを同じ `.claude/skills/` に入れる方法、配置を最新に保つ方法は [README](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/README.ja.md) にあります。
+
