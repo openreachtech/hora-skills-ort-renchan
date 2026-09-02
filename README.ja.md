@@ -1,6 +1,6 @@
 # @openreachtech/hora-skills-ort-renchan
 
-Hora Kit で開発するための renchan バックエンドスキルを配布するパッケージです。
+renchan バックエンドスキルを配布するパッケージです。単体でどのリポジトリにも導入でき、Hora Kit ではそのスキルライブラリの 1 つとして装備されます。
 
 ## コンセプト
 
