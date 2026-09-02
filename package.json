@@ -35,6 +35,9 @@
     "url": "https://github.com/openreachtech/hora-skills-ort-renchan/issues"
   },
   "homepage": "https://github.com/openreachtech/hora-skills-ort-renchan#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
   },
   "devDependencies": {
