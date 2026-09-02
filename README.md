@@ -1,6 +1,8 @@
 # @openreachtech/hora-skills-ort-renchan
 
-A distribution package of the renchan backend skills for developing with Hora Kit.
+*[日本語](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/README.ja.md)*
+
+A distribution package of the renchan backend skills — installed into any repository on its own, and equipped by Hora Kit as one of its skill libraries.
 
 ## Concept
 
@@ -10,9 +12,10 @@ This package ships **skills only** — there is no library to `import`, and the 
 
 | Package | Prefix | Domain | Skills |
 | :-- | :-- | :-- | --: |
-| `@openreachtech/hora-skills-ort-core` | `hoc-` | `core` | 35 |
+| `@openreachtech/hora-skills-ort-core` | `hoc-` | `core` | 39 |
 | `@openreachtech/hora-skills-ort-renchan` (this one) | `hor-` | `backend` | 31 |
 | `@openreachtech/hora-skills-ort-furo` | `hof-` | `frontend` | 46 |
+| `@openreachtech/hora-skills-ort-support` | `hos-` | `support` | 3 |
 
 [**Skill catalog**](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.md) ([日本語](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.ja.md)) — every skill in this package with a one- or two-line summary, listed by the command name it is invoked by.
 
@@ -54,7 +57,7 @@ The skills land in your repository's `.claude/skills/`. Claude Code discovers th
 
 ### Installing more than one domain
 
-Each of the three packages installs into the same `.claude/skills/`, and each records its own installation in `.hora/<package name>.json`. A run therefore removes only what that package installed, and leaves the other two alone:
+Each of the four packages installs into the same `.claude/skills/`, and each records its own installation in `.hora/<package name>.json`. A run therefore removes only what that package installed, and leaves the others alone:
 
 ```json
 {

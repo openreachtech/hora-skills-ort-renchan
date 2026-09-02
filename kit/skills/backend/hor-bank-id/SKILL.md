@@ -9,7 +9,7 @@ Hand this skill a **requester id** and it returns an **id prefix** you may use, 
 
 ## Why
 
-Several writers touch the same backend repository over time: every feature `/hora-build` takes through its checkpoints writes into the same tables, and a human team may split work by hand. When two of them pick the same explicit row `id`, whichever runs its seeder last silently overwrites or collides with the other's data. `hor-bank-id` gives each requester its own slice of the id space, once.
+Several writers touch the same backend repository over time: a human team may split work by hand, and an agent building one feature after another writes into the same tables. When two of them pick the same explicit row `id`, whichever runs its seeder last silently overwrites or collides with the other's data. `hor-bank-id` gives each requester its own slice of the id space, once.
 
 **Being serial does not remove the need.** A seeder written for feature A is still in the tree when feature B writes its own, and both are loaded together on the next database refresh. What has to be exclusive is the id space across time, not across concurrent processes.
 
@@ -34,8 +34,8 @@ Every explicit id is an 8-digit integer, split into two parts.
 
 Whatever uniquely names the caller, chosen by the caller:
 
-- **`/hora-build`'s own main session** passes the feature's `id`, once per feature, and hands the prefix it gets back to every agent working in that repository. **The agents themselves never call this skill** — several units of one checkpoint run at once, and each asking for itself would queue them behind one another's `mkdir` for no gain
 - a human working by hand picks their own name (`alice`), or a per-feature name for more than one slice
+- **an orchestrator driving one feature at a time** passes the feature's `id`, once per feature, and hands the prefix it gets back to every agent working in that repository. **The agents themselves never call this skill** — several units of one feature run at once, and each asking for itself would queue them behind one another's `mkdir` for no gain. In Hora Kit that orchestrator is `/hora-build`'s own main session
 
 The same requester id always gets back the same prefix. Asking twice, or retrying after a crash, is always safe.
 
@@ -73,7 +73,7 @@ Both live directly under the backend repository's own root — never under the o
 
 Reaching the retry limit means another writer is either still working or died mid-update. From outside these look identical, so **never remove the lock yourself to force through.** Report the failure instead:
 
-- **`/hora` stops the whole session** and states plainly: "the lock `hor-bank-id` uses did not clear, so this session is ending. Running `/hora` again will clear it automatically and continue" (see "Clearing a stale lock"). This should be rare — the lock is taken once per feature, by the main session, for the few seconds one allocation takes
+- **An orchestrator stops the whole session** and states plainly: "the lock `hor-bank-id` uses did not clear, so this session is ending. Starting it again will clear it automatically and continue" (see "Clearing a stale lock"). This should be rare — the lock is taken once per feature, by the main session, for the few seconds one allocation takes. In Hora Kit the command to start again is `/hora`
 - **A human running this by hand** may wait and retry, or run the clearing step below themselves
 
 ## Clearing a stale lock
@@ -84,7 +84,7 @@ A lock still standing at the very start of a fresh run cannot belong to anything
 rm -rf <backend-repo>/.hora/id-bank.lock
 ```
 
-`/hora-build` runs this, unconditionally, as its very first action against the backend row on any invocation. A human recovering from the failure above runs the same command by hand.
+An orchestrator runs this, unconditionally, as its very first action against the backend row on any invocation; in Hora Kit that is `/hora-build`. A human recovering from the failure above runs the same command by hand.
 
 ## Using the prefix once you have it
 

@@ -11,6 +11,61 @@ const DOMAIN_PREFIX = {
 }
 
 /**
+ * Every place a document states how many skills this package distributes.
+ *
+ * A count is a fact about `kit/skills/`, restated in prose. Each entry names
+ * the file, a pattern whose one capture group is the stated number, and what
+ * the place is called in a report.
+ *
+ * @returns {Array<{file: string, pattern: RegExp, label: string}>} One entry per place.
+ */
+function countedPlaces () {
+  return [
+    { file: 'docs/skills.md', pattern: /— (\d+) in total —/u, label: 'catalog heading' },
+    { file: 'docs/skills.ja.md', pattern: /全 ?(\d+) ?スキル|全スキル\((\d+) 件\)/u, label: 'catalog heading (ja)' },
+    { file: 'README.md', pattern: /^(\d+) skills are distributed/mu, label: 'README opening' },
+    { file: 'README.ja.md', pattern: /^配布されるスキルは (\d+) 件/mu, label: 'README opening (ja)' },
+    { file: 'README.md', pattern: /\(this one\) \| `[a-z]{3}-` \| `[a-z]+` \| (\d+) \|/u, label: 'package table, own row' },
+    { file: 'README.ja.md', pattern: /\(このパッケージ\) \| `[a-z]{3}-` \| `[a-z]+` \| (\d+) \|/u, label: 'package table, own row (ja)' },
+  ]
+}
+
+/**
+ * Compare one stated count against the skills actually counted.
+ *
+ * @param {{file: string, pattern: RegExp, label: string}} place - Where the count is stated.
+ * @param {number} counted - How many skills sit under kit/skills/.
+ * @returns {string | null} A report line when the two disagree or the place is gone, else null.
+ */
+function readStatedCount (
+  place,
+  counted
+) {
+  const absolutePath = join(repoRoot, place.file)
+
+  if (!existsSync(absolutePath)) {
+    return `${place.file}  (${place.label} — file is missing)`
+  }
+
+  const match = readFileSync(absolutePath, 'utf8')
+    .match(place.pattern)
+
+  if (!match) {
+    return `${place.file}  (${place.label} — no count found where one is expected)`
+  }
+
+  const stated = Number(
+    match
+      .slice(1)
+      .find(it => typeof it === 'string')
+  )
+
+  return stated === counted
+    ? null
+    : `${place.file}  (${place.label} — states ${stated}, counted ${counted})`
+}
+
+/**
  * Read the `name:` value from a SKILL.md's frontmatter.
  *
  * @param {string} skillMdPath - Path to the SKILL.md to read.
@@ -177,6 +232,12 @@ const problemGroups = [
     lines: skillEntries
       .filter(it => it.hasSkillMd && it.name === null)
       .map(it => `${it.path}/SKILL.md`),
+  },
+  {
+    heading: 'Stated skill count does not match what is under kit/skills/',
+    lines: countedPlaces()
+      .map(it => readStatedCount(it, skillEntries.filter(entry => entry.hasSkillMd).length))
+      .filter(it => it !== null),
   },
   {
     heading: 'name: does not match the folder name',

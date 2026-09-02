@@ -1,6 +1,6 @@
 {
   "name": "@openreachtech/hora-skills-ort-renchan",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Distributes the renchan backend skills used to develop with Hora Kit.",
   "type": "module",
   "files": [
@@ -35,6 +35,9 @@
     "url": "https://github.com/openreachtech/hora-skills-ort-renchan/issues"
   },
   "homepage": "https://github.com/openreachtech/hora-skills-ort-renchan#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
   },
   "devDependencies": {
@@ -47,5 +50,9 @@
     "@types/jest": "^30.0.0",
     "eslint": "^9.39.5",
     "jest": "^30.4.2"
+  },
+  "overrides": {
+    "brace-expansion@5": "^5.0.9",
+    "flatted": "^3.4.2"
   }
 }
