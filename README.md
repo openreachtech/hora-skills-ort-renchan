@@ -13,6 +13,7 @@ This package ships **skills only** — there is no library to `import`, and the 
 | `@openreachtech/hora-skills-ort-core` | `hoc-` | `core` | 39 |
 | `@openreachtech/hora-skills-ort-renchan` (this one) | `hor-` | `backend` | 31 |
 | `@openreachtech/hora-skills-ort-furo` | `hof-` | `frontend` | 46 |
+| `@openreachtech/hora-skills-ort-support` | `hos-` | `support` | 3 |
 
 [**Skill catalog**](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.md) ([日本語](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.ja.md)) — every skill in this package with a one- or two-line summary, listed by the command name it is invoked by.
 
