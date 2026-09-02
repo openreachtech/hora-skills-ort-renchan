@@ -1,5 +1,7 @@
 # @openreachtech/hora-skills-ort-renchan
 
+*[English](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/README.md)*
+
 renchan バックエンドスキルを配布するパッケージです。単体でどのリポジトリにも導入でき、Hora Kit ではそのスキルライブラリの 1 つとして装備されます。
 
 ## コンセプト
