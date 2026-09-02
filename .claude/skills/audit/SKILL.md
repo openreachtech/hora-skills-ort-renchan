@@ -1,6 +1,6 @@
 ---
 name: audit
-description: "Repository-specific check that every skill under kit/skills/ sits one level below the backend/ domain directory, carries its `hor-` prefix, and declares a `name:` equal to its own folder name — the same rules the flatten build aborts on, reported all at once with a non-zero exit for CI. Use before committing a new, renamed or moved skill. It reports only; it renames and moves nothing, and it checks no frontmatter field other than `name:`."
+description: "Repository-specific check that every skill under kit/skills/ sits one level below the backend/ domain directory, carries its `hor-` prefix, and declares a `name:` equal to its own folder name, and that the six places the documents state a skill count agree with what is there — the layout rules the flatten build aborts on plus the count, reported all at once with a non-zero exit for CI. Use before committing a new, renamed or moved skill. It reports only; it renames and moves nothing, it checks no frontmatter field other than `name:`, and it cannot check a sibling library's count."
 ---
 
 # Audit
@@ -19,6 +19,12 @@ For every entry directly under `kit/skills/backend/`:
 - **A folder name that is not `hoc-`/`hor-`/`hof-` followed by 1–60 characters of `[a-z0-9-]` is a failure.** The name is joined onto `dist/skills/` as a path segment, so a value carrying `/` or `..` would land the folder somewhere else entirely; 64 characters is the limit an installed skill name has to stay within, of which the prefix takes 4. A single case keeps two names from folding onto one folder on a case-insensitive filesystem (macOS, Windows default).
 - **A prefix that does not match the folder's domain is a failure** — `hof-` under `backend/` makes the name lie about where the skill lives, and it claims a name that belongs to the Furo frontend library; it is the prefix, not the directory, that a consuming repository ever sees. All three prefixes pass the name rule, so this is the check that keeps a sibling library's skill from being published by this one.
 - **A `SKILL.md` with no parsable `name:` is a failure**, and **a `name:` that differs from its folder name is a failure.** This last one is the check everything else rests on: the two are one string by convention, and only an enforced comparison keeps them one string in fact.
+
+And, once per run, the number the documents claim:
+
+- **A stated skill count that disagrees with what is under `kit/skills/` is a failure.** Six places restate the count as prose — the catalog heading and the README opening in both languages, and this package's own row of the package table in both — and each one is a fact about a directory, written by hand. When a skill is added, the count in all six moves or none of them does, and nothing but this check reports the difference.
+
+The package table's other rows are **not** checked. They state a sibling library's count, which cannot be verified from inside this repository: that library is not here, and it has no way to announce that it grew. Those rows have gone stale before, and this audit cannot be what catches it.
 
 Duplicate names are not checked, because they cannot occur. Two skills of this library would need two folders of one name in one directory, and a sibling library's skills carry a prefix of their own — so once each `name:` is confirmed equal to its folder name, uniqueness follows from the filesystem rather than from a comparison.
 
