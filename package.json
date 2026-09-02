@@ -1,6 +1,6 @@
 {
   "name": "@openreachtech/hora-skills-ort-renchan",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Distributes the renchan backend skills used to develop with Hora Kit.",
   "type": "module",
   "files": [
