@@ -1,6 +1,6 @@
 # @openreachtech/hora-skills-ort-renchan
 
-A distribution package of the renchan backend skills for developing with Hora Kit.
+A distribution package of the renchan backend skills — installed into any repository on its own, and equipped by Hora Kit as one of its skill libraries.
 
 ## Concept
 
