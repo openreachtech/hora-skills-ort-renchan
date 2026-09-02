@@ -10,7 +10,7 @@ Hora Kit で開発するための renchan バックエンドスキルを配布�
 
 | パッケージ | プレフィックス | ドメイン | スキル数 |
 | :-- | :-- | :-- | --: |
-| `@openreachtech/hora-skills-ort-core` | `hoc-` | `core` | 35 |
+| `@openreachtech/hora-skills-ort-core` | `hoc-` | `core` | 39 |
 | `@openreachtech/hora-skills-ort-renchan`(このパッケージ) | `hor-` | `backend` | 31 |
 | `@openreachtech/hora-skills-ort-furo` | `hof-` | `frontend` | 46 |
 
