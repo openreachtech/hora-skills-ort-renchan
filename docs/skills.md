@@ -4,7 +4,7 @@
 
 A catalog of every skill in this package — 31 in total — with a one- or two-line summary each.
 
-Each skill lives at `kit/skills/backend/<name>/`, one level under the domain directory, and that folder name is both the skill's `name:` and the folder name it is installed under. **Skill** below is therefore all you need: it is what you invoke as `/name`, what appears under `.claude/skills/` once installed, and where the source sits. The three-character prefix is the domain — see [the flatten build convention](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/.claude/skills/flatten/SKILL.md) for the layout and the naming rules. Full guidance for any skill is in its own `SKILL.md`. Grouped by area below; an area is a heading of this catalog, never part of a skill's name.
+Each skill lives at `kit/skills/backend/<name>/`, one level under the domain directory, and that folder name is both the skill's `name:` and the folder name it is installed under. **Skill** below is therefore all you need: it is what you invoke as `/name`, what appears under `.claude/skills/` once installed, and where the source sits. The three-character prefix is the domain — see [the flatten build convention](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/.claude/skills/flatten/SKILL.md) for the layout and the naming rules. Full guidance for a skill is in its own `SKILL.md`, and in the `references/` beside it where a skill needs one — a skill that fits in one file carries no `references/`, and each `SKILL.md` that has references says which of them settles what. Grouped by area below; an area is a heading of this catalog, never part of a skill's name.
 
 ### Database
 
