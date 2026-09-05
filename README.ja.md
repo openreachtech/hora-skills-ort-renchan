@@ -19,7 +19,7 @@ renchan バックエンドスキルを配布するパッケージです。単体
 
 [**スキルカタログ**](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.ja.md) ([English](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.md)) — このパッケージに収録された全スキルの一覧と概要(1〜2 行)を、呼び出しコマンド名で並べています。
 
-ソースは `kit/skills/backend/<name>/` に配置され、`dist/` が公開されるビルド成果物です。同じスキルフォルダからドメインの階層だけを取り除いた形で、これが Claude Code の求めるフラットな構成です。スキルフォルダ名はそのスキルの `name:` であり、インストール後のフォルダ名でもあります。一貫して同じ 1 つの文字列なので、カタログで見た名前がそのまま入力するコマンドになります。
+ソースは `kit/skills/<name>/` に配置され、`dist/` が公開されるビルド成果物です。同じスキルフォルダをそのまま写した形で、これが Claude Code の求めるフラットな構成です。スキルフォルダ名はそのスキルの `name:` であり、インストール後のフォルダ名でもあります。一貫して同じ 1 つの文字列なので、カタログで見た名前がそのまま入力するコマンドになります。
 
 ## インストール
 
