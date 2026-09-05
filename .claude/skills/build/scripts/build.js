@@ -1,15 +1,11 @@
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url))
 const sourceRoot = join(repoRoot, 'kit/skills')
 const outputRoot = join(repoRoot, 'dist/skills')
-const namePattern = /^ho[crf]-[a-z0-9-]{1,60}$/u
-
-const DOMAIN_PREFIX = {
-  backend: 'hor',
-}
+const namePattern = /^hor-[a-z0-9-]{1,60}$/u
 
 /**
  * Read the `name:` value from a SKILL.md's frontmatter.
@@ -68,21 +64,16 @@ function findNestedSkillMds (
 }
 
 /**
- * Read one child of a domain directory.
+ * Read one child of kit/skills/.
  *
- * @param {string} domain - Domain directory name directly under kit/skills/ (e.g. 'core').
- * @param {import('node:fs').Dirent} dirent - Child of the domain directory.
- * @returns {{domain: string, folderName: string, absolutePath: string, isDirectory: boolean, hasSkillMd: boolean, name: string | null, nestedSkillMds: Array<string>}} The entry.
+ * @param {import('node:fs').Dirent} dirent - Child of kit/skills/.
+ * @returns {{folderName: string, absolutePath: string, isDirectory: boolean, hasSkillMd: boolean, name: string | null, nestedSkillMds: Array<string>}} The entry.
  */
-function readDomainEntry (
-  domain,
-  dirent
-) {
-  const absolutePath = join(sourceRoot, domain, dirent.name)
+function readSkillEntry (dirent) {
+  const absolutePath = join(sourceRoot, dirent.name)
 
   if (!dirent.isDirectory()) {
     return {
-      domain,
       folderName: dirent.name,
       absolutePath,
       isDirectory: false,
@@ -96,7 +87,6 @@ function readDomainEntry (
     .some(entry => entry.isFile() && entry.name === 'SKILL.md')
 
   return {
-    domain,
     folderName: dirent.name,
     absolutePath,
     isDirectory: true,
@@ -108,64 +98,33 @@ function readDomainEntry (
   }
 }
 
-/**
- * Read every skill directory of one domain.
- *
- * @param {string} domain - Domain directory name directly under kit/skills/ (e.g. 'core').
- * @returns {Array<{domain: string, folderName: string, absolutePath: string, isDirectory: boolean, hasSkillMd: boolean, name: string | null, nestedSkillMds: Array<string>}>} One entry per child of the domain directory.
- */
-function readDomainEntries (domain) {
-  return readdirSync(join(sourceRoot, domain), { withFileTypes: true })
-    .map(it => readDomainEntry(domain, it))
-}
-
-const domains = Object.keys(DOMAIN_PREFIX)
-
-const missingDomains = domains.filter(it => !existsSync(join(sourceRoot, it)))
-
-const unexpectedRootEntries = readdirSync(sourceRoot, { withFileTypes: true })
-  .filter(it => !(it.isDirectory() && domains.includes(it.name)))
-  .map(it => `Unexpected entry directly under kit/skills/: ${it.name}`)
-
-const skillEntries = domains
-  .filter(it => !missingDomains.includes(it))
-  .flatMap(it => readDomainEntries(it))
+const skillEntries = readdirSync(sourceRoot, { withFileTypes: true })
+  .map(it => readSkillEntry(it))
 
 const issues = [
-  ...missingDomains.map(it => `Missing domain directory: kit/skills/${it}/`),
-
-  ...unexpectedRootEntries,
-
   ...skillEntries
     .filter(it => !it.isDirectory)
-    .map(it => `Not a skill directory: kit/skills/${it.domain}/${it.folderName}`),
+    .map(it => `Not a skill directory: kit/skills/${it.folderName}`),
 
   ...skillEntries
     .filter(it => it.isDirectory && !it.hasSkillMd)
-    .map(it => `No SKILL.md: kit/skills/${it.domain}/${it.folderName}/`),
+    .map(it => `No SKILL.md: kit/skills/${it.folderName}/`),
 
   ...skillEntries
     .flatMap(it => it.nestedSkillMds
-      .map(nested => `Nested skill: kit/skills/${it.domain}/${it.folderName}/${nested}`)),
+      .map(nested => `Nested skill: kit/skills/${it.folderName}/${nested}`)),
 
   ...skillEntries
     .filter(it => it.isDirectory && !namePattern.test(it.folderName))
-    .map(it => `Invalid folder name: kit/skills/${it.domain}/${it.folderName}/`),
-
-  ...skillEntries
-    .filter(it =>
-      it.isDirectory
-      && namePattern.test(it.folderName)
-      && !it.folderName.startsWith(`${DOMAIN_PREFIX[it.domain]}-`))
-    .map(it => `Wrong prefix for ${it.domain}/ (expected ${DOMAIN_PREFIX[it.domain]}-): kit/skills/${it.domain}/${it.folderName}/`),
+    .map(it => `Invalid folder name: kit/skills/${it.folderName}/`),
 
   ...skillEntries
     .filter(it => it.hasSkillMd && it.name === null)
-    .map(it => `Missing name: kit/skills/${it.domain}/${it.folderName}/SKILL.md`),
+    .map(it => `Missing name: kit/skills/${it.folderName}/SKILL.md`),
 
   ...skillEntries
     .filter(it => it.name !== null && it.name !== it.folderName)
-    .map(it => `name: ${it.name} does not match its folder: kit/skills/${it.domain}/${it.folderName}/`),
+    .map(it => `name: ${it.name} does not match its folder: kit/skills/${it.folderName}/`),
 ]
 
 if (issues.length > 0) {
@@ -174,7 +133,7 @@ if (issues.length > 0) {
     .join('\n')
 
   throw new Error(
-    `Cannot flatten kit/skills:\n${details}\n`
+    `Cannot build kit/skills:\n${details}\n`
   )
 }
 
@@ -190,4 +149,4 @@ skillEntries.forEach(({ absolutePath, folderName }) => {
   )
 })
 
-process.stdout.write(`Flattened ${skillEntries.length} skills into ${outputRoot}\n`)
+process.stdout.write(`Copied ${skillEntries.length} skills into ${outputRoot}\n`)
