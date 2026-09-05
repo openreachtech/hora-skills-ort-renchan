@@ -19,7 +19,7 @@ describe('Skill name pattern', () => {
   describe('is declared identically by every script that enforces it', () => {
     const cases = [
       { scriptPath: '.claude/skills/audit/scripts/audit.js' },
-      { scriptPath: '.claude/skills/flatten/scripts/build.js' },
+      { scriptPath: '.claude/skills/build/scripts/build.js' },
     ]
 
     test.each(cases)('$scriptPath', ({ scriptPath }) => {
