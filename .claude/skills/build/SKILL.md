@@ -1,9 +1,9 @@
 ---
-name: flatten
+name: build
 description: "Repository-specific build convention: kit/skills/ holds exactly one domain directory (backend/), containing one level of skill folders named hor-*, and the build copies those folders into dist/skills/ unchanged — dropping only the domain level — to produce the flat .claude/skills/ layout that consuming repositories install. Use when rebuilding the dist/ output, or when adding, renaming or placing a skill under kit/skills/."
 ---
 
-# Flatten
+# Build
 
 Consuming repositories install skills as a single flat list directly under `.claude/skills/`, with no domain subdirectories. `dist/skills/` is the build output of this repository that already has that flat shape, ready to be installed as-is.
 
@@ -42,7 +42,7 @@ Those three characters buy two things. A consuming repository installs these ski
 ## The build
 
 ```
-node .claude/skills/flatten/scripts/build.js
+node .claude/skills/build/scripts/build.js
 ```
 
 It validates the whole source tree first (below), then deletes `dist/skills/` outright and recreates it: `dist/` is a function of the current source alone. Without the deletion, a skill renamed or removed at the source would keep its stale folder in `dist/` indefinitely, and the build would go on shipping a skill that no longer exists — a failure invisible in a diff, because nothing about the stale folder changes.

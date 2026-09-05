@@ -1,6 +1,6 @@
 ---
 name: audit
-description: "Repository-specific check that every skill under kit/skills/ sits one level below the backend/ domain directory, carries its `hor-` prefix, and declares a `name:` equal to its own folder name, and that the six places the documents state a skill count agree with what is there — the layout rules the flatten build aborts on plus the count, reported all at once with a non-zero exit for CI. Use before committing a new, renamed or moved skill. It reports only; it renames and moves nothing, it checks no frontmatter field other than `name:`, and it cannot check a sibling library's count."
+description: "Repository-specific check that every skill under kit/skills/ sits one level below the backend/ domain directory, carries its `hor-` prefix, and declares a `name:` equal to its own folder name, and that the six places the documents state a skill count agree with what is there — the layout rules the build aborts on plus the count, reported all at once with a non-zero exit for CI. Use before committing a new, renamed or moved skill. It reports only; it renames and moves nothing, it checks no frontmatter field other than `name:`, and it cannot check a sibling library's count."
 ---
 
 # Audit
@@ -30,9 +30,9 @@ Duplicate names are not checked, because they cannot occur. Two skills of this l
 
 Nothing else is checked here. Description length, quoting, and the rest of how a `SKILL.md` is written belong to the skill-writing convention, which owns them.
 
-The walk starts at `kit/skills/` and goes nowhere else. This repository's own skills under `.claude/skills/` — this audit and the flatten build — are tooling for maintaining the library, not library content: they are never installed into a consuming repository, so they never enter the flat namespace being protected here, and none of the rules above apply to them. That is why they are free to carry an unprefixed one-word name of their own.
+The walk starts at `kit/skills/` and goes nowhere else. This repository's own skills under `.claude/skills/` — this audit and the build — are tooling for maintaining the library, not library content: they are never installed into a consuming repository, so they never enter the flat namespace being protected here, and none of the rules above apply to them. That is why they are free to carry an unprefixed one-word name of their own.
 
-These are exactly the failures the flatten build aborts on, and they are stated identically in both places on purpose. The build enforces them because a violation would destroy or misplace its output; this audit enforces them so a CI job can reject the commit before anyone runs a build. Neither is a substitute for the other, so the rule is written out in both rather than shared through an import that would tie one skill's script to the other's — and a test pins the two copies of the name pattern, and the two copies of the prefix table, to each other, so changing either in one place alone fails.
+These are exactly the failures the build aborts on, and they are stated identically in both places on purpose. The build enforces them because a violation would destroy or misplace its output; this audit enforces them so a CI job can reject the commit before anyone runs a build. Neither is a substitute for the other, so the rule is written out in both rather than shared through an import that would tie one skill's script to the other's — and a test pins the two copies of the name pattern, and the two copies of the prefix table, to each other, so changing either in one place alone fails.
 
 Every problem found is reported, grouped by kind, in one run: fixing a layout mistake often surfaces the next one, and a report that stops at the first failure would take as many runs as there are mistakes.
 
