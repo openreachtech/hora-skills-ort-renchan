@@ -13,7 +13,7 @@ Consuming repositories install skills as a single flat list directly under `.cla
 
 `kit/skills/` contains skill folders and nothing else. Every one carries this library's `hor-` prefix, and what the library holds is the conventions and procedures for renchan-based Node backends.
 
-The sibling libraries — `hora-skills-ort-core` (`hoc-`) and `hora-skills-ort-furo` (`hof-`) — lay their own `kit/skills/` out the same way, so a skill moves between them by moving its folder, and the build and the audit read the same tree in every one of them.
+The sibling libraries lay their own `kit/skills/` out the same way, so a skill moves between them by moving its folder, and the build and the audit read the same tree in every one of them.
 
 Every skill is therefore at exactly this depth:
 
