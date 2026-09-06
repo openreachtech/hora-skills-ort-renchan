@@ -57,6 +57,7 @@
     "flatted": "^3.4.2"
   },
   "allowScripts": {
-    "fsevents": false
+    "fsevents": false,
+    "unrs-resolver": false
   }
 }
