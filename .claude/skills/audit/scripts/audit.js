@@ -7,58 +7,53 @@ const sourceRoot = join(repoRoot, 'kit/skills')
 const namePattern = /^hor-[a-z0-9-]{1,60}$/u
 
 /**
- * Every place a document states how many skills this package distributes.
+ * Every catalog the documents keep of the skills this package distributes.
  *
- * A count is a fact about `kit/skills/`, restated in prose. Each entry names
- * the file, a pattern whose one capture group is the stated number, and what
- * the place is called in a report.
+ * A catalog restates `kit/skills/` as a table, one row per skill. Each entry
+ * names the file and what the catalog is called in a report.
  *
- * @returns {Array<{file: string, pattern: RegExp, label: string}>} One entry per place.
+ * @returns {Array<{file: string, label: string}>} One entry per catalog.
  */
-function countedPlaces () {
+function catalogFiles () {
   return [
-    { file: 'docs/skills.md', pattern: /— (\d+) in total —/u, label: 'catalog heading' },
-    { file: 'docs/skills.ja.md', pattern: /全 ?(\d+) ?スキル|全スキル\((\d+) 件\)/u, label: 'catalog heading (ja)' },
-    { file: 'README.md', pattern: /^(\d+) skills are distributed/mu, label: 'README opening' },
-    { file: 'README.ja.md', pattern: /^配布されるスキルは (\d+) 件/mu, label: 'README opening (ja)' },
-    { file: 'README.md', pattern: /\(this one\) \| `[a-z]{3}-` \| `[a-z]+` \| (\d+) \|/u, label: 'package table, own row' },
-    { file: 'README.ja.md', pattern: /\(このパッケージ\) \| `[a-z]{3}-` \| `[a-z]+` \| (\d+) \|/u, label: 'package table, own row (ja)' },
+    { file: 'docs/skills.md', label: 'catalog' },
+    { file: 'docs/skills.ja.md', label: 'catalog (ja)' },
   ]
 }
 
 /**
- * Compare one stated count against the skills actually counted.
+ * Compare one catalog's rows against the skills actually there.
  *
- * @param {{file: string, pattern: RegExp, label: string}} place - Where the count is stated.
- * @param {number} counted - How many skills sit under kit/skills/.
- * @returns {string | null} A report line when the two disagree or the place is gone, else null.
+ * @param {{file: string, label: string}} catalog - Which catalog to read.
+ * @param {Array<string>} folderNames - The skill folders under kit/skills/.
+ * @returns {Array<string>} A report line per skill with no row, and per row naming no skill.
  */
-function readStatedCount (
-  place,
-  counted
+function readCatalogedNames (
+  catalog,
+  folderNames
 ) {
-  const absolutePath = join(repoRoot, place.file)
+  const absolutePath = join(repoRoot, catalog.file)
 
   if (!existsSync(absolutePath)) {
-    return `${place.file}  (${place.label} — file is missing)`
+    return [
+      `${catalog.file}  (${catalog.label} — file is missing)`,
+    ]
   }
 
-  const match = readFileSync(absolutePath, 'utf8')
-    .match(place.pattern)
-
-  if (!match) {
-    return `${place.file}  (${place.label} — no count found where one is expected)`
-  }
-
-  const stated = Number(
-    match
-      .slice(1)
-      .find(it => typeof it === 'string')
+  const cataloged = Array.from(
+    readFileSync(absolutePath, 'utf8')
+      .matchAll(/^\| `([^`]+)` \|/gmu),
+    it => it[1]
   )
 
-  return stated === counted
-    ? null
-    : `${place.file}  (${place.label} — states ${stated}, counted ${counted})`
+  return [
+    ...folderNames
+      .filter(it => !cataloged.includes(it))
+      .map(it => `${catalog.file}  (${catalog.label} — no row for ${it})`),
+    ...cataloged
+      .filter(it => !folderNames.includes(it))
+      .map(it => `${catalog.file}  (${catalog.label} — a row for ${it}, which is not under kit/skills/)`),
+  ]
 }
 
 /**
@@ -156,6 +151,10 @@ function readSkillEntry (dirent) {
 const skillEntries = readdirSync(sourceRoot, { withFileTypes: true })
   .map(it => readSkillEntry(it))
 
+const presentSkillFolderNames = skillEntries
+  .filter(it => it.hasSkillMd)
+  .map(it => it.folderName)
+
 const problemGroups = [
   {
     heading: 'Not a skill directory',
@@ -187,10 +186,9 @@ const problemGroups = [
       .map(it => `${it.path}/SKILL.md`),
   },
   {
-    heading: 'Stated skill count does not match what is under kit/skills/',
-    lines: countedPlaces()
-      .map(it => readStatedCount(it, skillEntries.filter(entry => entry.hasSkillMd).length))
-      .filter(it => it !== null),
+    heading: 'Catalog rows do not match what is under kit/skills/',
+    lines: catalogFiles()
+      .flatMap(it => readCatalogedNames(it, presentSkillFolderNames)),
   },
   {
     heading: 'name: does not match the folder name',
