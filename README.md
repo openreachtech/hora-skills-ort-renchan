@@ -57,7 +57,7 @@ The skills land in your repository's `.claude/skills/`. Claude Code discovers th
 
 ### Installing more than one domain
 
-Each of the four packages installs into the same `.claude/skills/`, and each records its own installation in `.hora/<package name>.json`. A run therefore removes only what that package installed, and leaves the others alone:
+Each `hora-skills` package installs into the same `.claude/skills/`, and each records its own installation in `.hora/<package name>.json`. A run therefore removes only what that package installed, and leaves the others alone:
 
 ```json
 {
