@@ -8,7 +8,7 @@ A distribution package of the renchan backend skills — installed into any repo
 
 This package ships **skills only** — there is no library to `import`, and the one executable it carries exists to install those skills. A skill is a directory holding a `SKILL.md`, plus optional `references/` and `scripts/`, that Claude Code loads and invokes as `/<name>`. Installing this package into a repository puts the conventions and procedures Open Reach Tech develops with in front of the agent working on that repository.
 
-31 skills are distributed, all of the `backend` domain: renchan-based Node backends. The three-character prefix on every name is the domain, so a reader looking at one flat list of skills can tell at a glance which came from this package. Each domain is a package of its own, and a repository installs the ones it works in:
+The skills distributed are all of the `backend` domain: renchan-based Node backends. The three-character prefix on every name is the domain, so a reader looking at one flat list of skills can tell at a glance which came from this package. Each domain is a package of its own, and a repository installs the ones it works in:
 
 | Package | Prefix | Domain |
 | :-- | :-- | :-- |
