@@ -12,10 +12,10 @@ This package ships **skills only** — there is no library to `import`, and the 
 
 | Package | Prefix | Domain |
 | :-- | :-- | :-- |
-| `@openreachtech/hora-skills-ort-core` | `hoc-` | `core` |
-| `@openreachtech/hora-skills-ort-renchan` (this one) | `hor-` | `backend` |
-| `@openreachtech/hora-skills-ort-furo` | `hof-` | `frontend` |
-| `@openreachtech/hora-skills-ort-support` | `hos-` | `support` |
+| [`@openreachtech/hora-skills-ort-core`](https://github.com/openreachtech/hora-skills-ort-core) | `hoc-` | `core` |
+| [`@openreachtech/hora-skills-ort-renchan`](https://github.com/openreachtech/hora-skills-ort-renchan) (this one) | `hor-` | `backend` |
+| [`@openreachtech/hora-skills-ort-furo`](https://github.com/openreachtech/hora-skills-ort-furo) | `hof-` | `frontend` |
+| [`@openreachtech/hora-skills-ort-support`](https://github.com/openreachtech/hora-skills-ort-support) | `hos-` | `support` |
 
 [**Skill catalog**](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.md) ([日本語](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.ja.md)) — every skill in this package with a one- or two-line summary, listed by the command name it is invoked by.
 
