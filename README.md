@@ -19,7 +19,7 @@ This package ships **skills only** — there is no library to `import`, and the 
 
 [**Skill catalog**](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.md) ([日本語](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.ja.md)) — every skill in this package with a one- or two-line summary, listed by the command name it is invoked by.
 
-The source is organized at `kit/skills/backend/<name>/`, and `dist/` is the published build output: the same skill folders with the domain level dropped, which is the flat shape Claude Code expects. A skill folder's name is its `name:` and the folder name it installs as — one string throughout, so the name you see in the catalog is the command you type.
+The source is organized at `kit/skills/<name>/`, and `dist/` is the published build output: the same skill folders copied through unchanged, which is the flat shape Claude Code expects. A skill folder's name is its `name:` and the folder name it installs as — one string throughout, so the name you see in the catalog is the command you type.
 
 ## Installation
 

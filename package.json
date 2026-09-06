@@ -18,7 +18,7 @@
     "renchan"
   ],
   "scripts": {
-    "build": "node .claude/skills/flatten/scripts/build.js",
+    "build": "node .claude/skills/build/scripts/build.js",
     "l": "npm run lint",
     "lint": "eslint .",
     "prepack": "npm run build",

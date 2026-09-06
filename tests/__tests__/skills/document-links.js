@@ -10,7 +10,7 @@ import MarkdownDocumentCatalog from '../../tools/MarkdownDocumentCatalog.js'
  * A section renamed without its links repointed therefore ships silently, and
  * has done — the change that added this test repaired 32 links already broken.
  *
- * dist/ is a verbatim copy made by the flatten build, so checking kit/ covers
+ * dist/ is a verbatim copy made by the build, so checking kit/ covers
  * what is published.
  */
 describe('Documents under kit/', () => {
