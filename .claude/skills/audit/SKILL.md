@@ -1,6 +1,6 @@
 ---
 name: audit
-description: "Repository-specific check that every skill sits directly under kit/skills/, carries its `hor-` prefix, and declares a `name:` equal to its own folder name, and that the six places the documents state a skill count agree with what is there — the layout rules the build aborts on plus the count, reported all at once with a non-zero exit for CI. Use before committing a new, renamed or moved skill. It reports only; it renames and moves nothing, it checks no frontmatter field other than `name:`, and it cannot check a sibling library's count."
+description: "Repository-specific check that every skill sits directly under kit/skills/, carries its `hor-` prefix, and declares a `name:` equal to its own folder name, and that both skill catalogs carry a row for every one of them and a row for nothing else — the layout rules the build aborts on plus the catalogs, reported all at once with a non-zero exit for CI. Use before committing a new, renamed or moved skill. It reports only; it renames and moves nothing, it checks no frontmatter field other than `name:`, and it reads nothing of a sibling library."
 ---
 
 # Audit
@@ -18,11 +18,11 @@ For every entry directly under `kit/skills/`:
 - **A folder name that is not `hor-` followed by 1–60 characters of `[a-z0-9-]` is a failure.** The prefix is what keeps a sibling library's skill from being published by this one: a sibling's prefix here would claim a name that is not this package's to publish, and it is the prefix, not the directory a folder sits in, that a consuming repository ever sees. The rest of the rule guards the path — the name is joined onto `dist/skills/` as a path segment, so a value carrying `/` or `..` would land the folder somewhere else entirely; 64 characters is the limit an installed skill name has to stay within, of which the prefix takes 4. A single case keeps two names from folding onto one folder on a case-insensitive filesystem (macOS, Windows default).
 - **A `SKILL.md` with no parsable `name:` is a failure**, and **a `name:` that differs from its folder name is a failure.** This last one is the check everything else rests on: the two are one string by convention, and only an enforced comparison keeps them one string in fact.
 
-And, once per run, the number the documents claim:
+And, once per run, what the catalogs claim:
 
-- **A stated skill count that disagrees with what is under `kit/skills/` is a failure.** Six places restate the count as prose — the catalog heading and the README opening in both languages, and this package's own row of the package table in both — and each one is a fact about a directory, written by hand. When a skill is added, the count in all six moves or none of them does, and nothing but this check reports the difference.
+- **A catalog missing a row for a skill, or carrying a row for something not there, is a failure.** `docs/skills.md` and `docs/skills.ja.md` each restate `kit/skills/` as a table, one row per skill, written by hand. A skill added, renamed or dropped moves both catalogs or neither, and nothing but this check reports the difference.
 
-The package table's other rows are **not** checked. They state a sibling library's count, which cannot be verified from inside this repository: that library is not here, and it has no way to announce that it grew. Those rows have gone stale before, and this audit cannot be what catches it.
+No document states a skill count any more, so none is checked. A count is derivable from `kit/skills/`, and restating it by hand bought a number a reader never acts on — the catalog beside it already shows the skills. What a catalog cannot show about itself is whether it is complete, and that is what the row check settles.
 
 Duplicate names are not checked, because they cannot occur. Two skills of this library would need two folders of one name in one directory, and a sibling library's skills carry a prefix of their own — so once each `name:` is confirmed equal to its folder name, uniqueness follows from the filesystem rather than from a comparison.
 
