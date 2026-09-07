@@ -3,7 +3,7 @@
 An authenticated actor's credential and session live in a small cluster of tables, kept apart from the actor's profile. For an actor `<Actor>`:
 
 - `<Actor>` — the entity (its profile fields are the app's own design; see [[hor-database-design]]).
-- `<Actor>Secret` — the sign-in identifier (`email`), kept apart from the profile.
+- `<Actor>Secret` — the sign-in identifier (`email`), kept apart from the profile. Takes the backup mixin.
 - `<Actor>PasswordHash` — the password digest; verifies a candidate password.
 - `<Actor>AccessToken` — the short-lived token (15 min), sent on the `x-renchan-access-token` header.
 - `<Actor>RefreshToken` — the long-lived token; stored only as a digest, delivered as an `HttpOnly` cookie.
@@ -96,6 +96,22 @@ The shared `SessionClerk` ([session-clerk](./session-clerk.md)) holds the token 
 ```js
 extractUserId () {
   return this.get('<Actor>Id') // the Admin model returns AdminId
+}
+```
+
+## Secret
+
+`<Actor>Secret` stores `email` and uses the backup mixin, so an address change leaves the
+previous one behind rather than overwriting it. It is the only thing `signIn` looks an actor up
+by:
+
+```js
+static get Mixins () {
+  return [BackupMixinModel]
+}
+
+static get BackupModel () {
+  return this._.<Actor>SecretsBk
 }
 ```
 

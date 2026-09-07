@@ -4,65 +4,56 @@ import { fileURLToPath } from 'node:url'
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url))
 const sourceRoot = join(repoRoot, 'kit/skills')
-const namePattern = /^ho[crf]-[a-z0-9-]{1,60}$/u
-
-const DOMAIN_PREFIX = {
-  backend: 'hor',
-}
+const namePattern = /^hor-[a-z0-9-]{1,60}$/u
 
 /**
- * Every place a document states how many skills this package distributes.
+ * Every catalog the documents keep of the skills this package distributes.
  *
- * A count is a fact about `kit/skills/`, restated in prose. Each entry names
- * the file, a pattern whose one capture group is the stated number, and what
- * the place is called in a report.
+ * A catalog restates `kit/skills/` as a table, one row per skill. Each entry
+ * names the file and what the catalog is called in a report.
  *
- * @returns {Array<{file: string, pattern: RegExp, label: string}>} One entry per place.
+ * @returns {Array<{file: string, label: string}>} One entry per catalog.
  */
-function countedPlaces () {
+function catalogFiles () {
   return [
-    { file: 'docs/skills.md', pattern: /— (\d+) in total —/u, label: 'catalog heading' },
-    { file: 'docs/skills.ja.md', pattern: /全 ?(\d+) ?スキル|全スキル\((\d+) 件\)/u, label: 'catalog heading (ja)' },
-    { file: 'README.md', pattern: /^(\d+) skills are distributed/mu, label: 'README opening' },
-    { file: 'README.ja.md', pattern: /^配布されるスキルは (\d+) 件/mu, label: 'README opening (ja)' },
-    { file: 'README.md', pattern: /\(this one\) \| `[a-z]{3}-` \| `[a-z]+` \| (\d+) \|/u, label: 'package table, own row' },
-    { file: 'README.ja.md', pattern: /\(このパッケージ\) \| `[a-z]{3}-` \| `[a-z]+` \| (\d+) \|/u, label: 'package table, own row (ja)' },
+    { file: 'docs/skills.md', label: 'catalog' },
+    { file: 'docs/skills.ja.md', label: 'catalog (ja)' },
   ]
 }
 
 /**
- * Compare one stated count against the skills actually counted.
+ * Compare one catalog's rows against the skills actually there.
  *
- * @param {{file: string, pattern: RegExp, label: string}} place - Where the count is stated.
- * @param {number} counted - How many skills sit under kit/skills/.
- * @returns {string | null} A report line when the two disagree or the place is gone, else null.
+ * @param {{file: string, label: string}} catalog - Which catalog to read.
+ * @param {Array<string>} folderNames - The skill folders under kit/skills/.
+ * @returns {Array<string>} A report line per skill with no row, and per row naming no skill.
  */
-function readStatedCount (
-  place,
-  counted
+function readCatalogedNames (
+  catalog,
+  folderNames
 ) {
-  const absolutePath = join(repoRoot, place.file)
+  const absolutePath = join(repoRoot, catalog.file)
 
   if (!existsSync(absolutePath)) {
-    return `${place.file}  (${place.label} — file is missing)`
+    return [
+      `${catalog.file}  (${catalog.label} — file is missing)`,
+    ]
   }
 
-  const match = readFileSync(absolutePath, 'utf8')
-    .match(place.pattern)
-
-  if (!match) {
-    return `${place.file}  (${place.label} — no count found where one is expected)`
-  }
-
-  const stated = Number(
-    match
-      .slice(1)
-      .find(it => typeof it === 'string')
+  const cataloged = Array.from(
+    readFileSync(absolutePath, 'utf8')
+      .matchAll(/^\| `([^`]+)` \|/gmu),
+    it => it[1]
   )
 
-  return stated === counted
-    ? null
-    : `${place.file}  (${place.label} — states ${stated}, counted ${counted})`
+  return [
+    ...folderNames
+      .filter(it => !cataloged.includes(it))
+      .map(it => `${catalog.file}  (${catalog.label} — no row for ${it})`),
+    ...cataloged
+      .filter(it => !folderNames.includes(it))
+      .map(it => `${catalog.file}  (${catalog.label} — a row for ${it}, which is not under kit/skills/)`),
+  ]
 }
 
 /**
@@ -122,22 +113,17 @@ function findNestedSkillMds (
 }
 
 /**
- * Read one entry of a domain directory.
+ * Read one entry directly under kit/skills/.
  *
- * @param {string} domain - Domain directory name directly under kit/skills/ (e.g. 'core').
- * @param {import('node:fs').Dirent} dirent - Child of the domain directory.
- * @returns {{domain: string, folderName: string, path: string, isDirectory: boolean, hasSkillMd: boolean, name: string | null, nestedSkillMds: Array<string>}} The entry.
+ * @param {import('node:fs').Dirent} dirent - Child of kit/skills/.
+ * @returns {{folderName: string, path: string, isDirectory: boolean, hasSkillMd: boolean, name: string | null, nestedSkillMds: Array<string>}} The entry.
  */
-function readDomainEntry (
-  domain,
-  dirent
-) {
-  const absolutePath = join(sourceRoot, domain, dirent.name)
-  const path = `kit/skills/${domain}/${dirent.name}`
+function readSkillEntry (dirent) {
+  const absolutePath = join(sourceRoot, dirent.name)
+  const path = `kit/skills/${dirent.name}`
 
   if (!dirent.isDirectory()) {
     return {
-      domain,
       folderName: dirent.name,
       path,
       isDirectory: false,
@@ -151,7 +137,6 @@ function readDomainEntry (
     .some(entry => entry.isFile() && entry.name === 'SKILL.md')
 
   return {
-    domain,
     folderName: dirent.name,
     path,
     isDirectory: true,
@@ -163,38 +148,14 @@ function readDomainEntry (
   }
 }
 
-/**
- * Read every entry of one domain directory.
- *
- * @param {string} domain - Domain directory name directly under kit/skills/ (e.g. 'core').
- * @returns {Array<{domain: string, folderName: string, path: string, isDirectory: boolean, hasSkillMd: boolean, name: string | null, nestedSkillMds: Array<string>}>} One entry per child of the domain directory.
- */
-function readDomainEntries (domain) {
-  return readdirSync(join(sourceRoot, domain), { withFileTypes: true })
-    .map(it => readDomainEntry(domain, it))
-}
+const skillEntries = readdirSync(sourceRoot, { withFileTypes: true })
+  .map(it => readSkillEntry(it))
 
-const domains = Object.keys(DOMAIN_PREFIX)
-
-const missingDomains = domains.filter(it => !existsSync(join(sourceRoot, it)))
-
-const unexpectedRootEntries = readdirSync(sourceRoot, { withFileTypes: true })
-  .filter(it => !(it.isDirectory() && domains.includes(it.name)))
-  .map(it => `kit/skills/${it.name}`)
-
-const skillEntries = domains
-  .filter(it => !missingDomains.includes(it))
-  .flatMap(it => readDomainEntries(it))
+const presentSkillFolderNames = skillEntries
+  .filter(it => it.hasSkillMd)
+  .map(it => it.folderName)
 
 const problemGroups = [
-  {
-    heading: 'Missing domain directory',
-    lines: missingDomains.map(it => `kit/skills/${it}/`),
-  },
-  {
-    heading: 'Not the backend domain directory',
-    lines: unexpectedRootEntries,
-  },
   {
     heading: 'Not a skill directory',
     lines: skillEntries
@@ -219,25 +180,15 @@ const problemGroups = [
       .map(it => `${it.path}/`),
   },
   {
-    heading: 'Prefix does not match the domain',
-    lines: skillEntries
-      .filter(it =>
-        it.isDirectory
-        && namePattern.test(it.folderName)
-        && !it.folderName.startsWith(`${DOMAIN_PREFIX[it.domain]}-`))
-      .map(it => `${it.path}/  (expected ${DOMAIN_PREFIX[it.domain]}-)`),
-  },
-  {
     heading: 'Missing name:',
     lines: skillEntries
       .filter(it => it.hasSkillMd && it.name === null)
       .map(it => `${it.path}/SKILL.md`),
   },
   {
-    heading: 'Stated skill count does not match what is under kit/skills/',
-    lines: countedPlaces()
-      .map(it => readStatedCount(it, skillEntries.filter(entry => entry.hasSkillMd).length))
-      .filter(it => it !== null),
+    heading: 'Catalog rows do not match what is under kit/skills/',
+    lines: catalogFiles()
+      .flatMap(it => readCatalogedNames(it, presentSkillFolderNames)),
   },
   {
     heading: 'name: does not match the folder name',
@@ -260,7 +211,7 @@ problemGroups.forEach(({ heading, lines }) => {
 
 if (problemGroups.length === 0) {
   process.stdout.write(
-    'Every skill sits one level under its domain and declares a name: equal to its folder name\n'
+    'Every skill sits directly under kit/skills/ and declares a name: equal to its folder name\n'
   )
 }
 

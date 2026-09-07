@@ -19,14 +19,14 @@ describe('Skill name pattern', () => {
   describe('is declared identically by every script that enforces it', () => {
     const cases = [
       { scriptPath: '.claude/skills/audit/scripts/audit.js' },
-      { scriptPath: '.claude/skills/flatten/scripts/build.js' },
+      { scriptPath: '.claude/skills/build/scripts/build.js' },
     ]
 
     test.each(cases)('$scriptPath', ({ scriptPath }) => {
       const content = readFileSync(join(repoRoot, scriptPath), 'utf8')
 
       expect(content)
-        .toContain('const namePattern = /^ho[crf]-[a-z0-9-]{1,60}$/u')
+        .toContain('const namePattern = /^hor-[a-z0-9-]{1,60}$/u')
     })
   })
 })

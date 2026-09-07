@@ -8,7 +8,7 @@ export default [
 
   {
     ignores: [
-      // dist/ is generated build output (see the flatten skill), not source.
+      // dist/ is generated build output (see the build skill), not source.
       './dist/**',
 
       './kit/**',

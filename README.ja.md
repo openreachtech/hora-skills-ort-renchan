@@ -8,18 +8,18 @@ renchan バックエンドスキルを配布するパッケージです。単体
 
 このパッケージが配布するのは **スキルのみ** です。`import` して使うライブラリはなく、同梱する唯一の実行コマンドはそのスキルを配置するためのものです。スキルとは `SKILL.md`(と任意の `references/`・`scripts/`)を収めたディレクトリで、Claude Code が読み込み `/<name>` として呼び出します。導入先のリポジトリにインストールすることで、Open Reach Tech が開発に用いている規約と手順を、そのリポジトリで作業するエージェントに届けます。
 
-配布されるスキルは 31 件、すべて `backend` ドメインのもので、内容は「renchan ベースの Node バックエンド」です。各名前の先頭 3 文字がドメインを表すので、フラットに並んだスキル一覧を見た人が、どれがこのパッケージ由来かを一目で判別できます。ドメインごとに別のパッケージになっており、リポジトリは自分が扱うドメインのものを入れます。
+配布されるスキルはすべて `backend` ドメインのもので、内容は「renchan ベースの Node バックエンド」です。各名前の先頭 3 文字がドメインを表すので、フラットに並んだスキル一覧を見た人が、どれがこのパッケージ由来かを一目で判別できます。ドメインごとに別のパッケージになっており、リポジトリは自分が扱うドメインのものを入れます。
 
-| パッケージ | プレフィックス | ドメイン | スキル数 |
-| :-- | :-- | :-- | --: |
-| `@openreachtech/hora-skills-ort-core` | `hoc-` | `core` | 39 |
-| `@openreachtech/hora-skills-ort-renchan`(このパッケージ) | `hor-` | `backend` | 31 |
-| `@openreachtech/hora-skills-ort-furo` | `hof-` | `frontend` | 46 |
-| `@openreachtech/hora-skills-ort-support` | `hos-` | `support` | 3 |
+| パッケージ | プレフィックス | ドメイン |
+| :-- | :-- | :-- |
+| [`@openreachtech/hora-skills-ort-core`](https://github.com/openreachtech/hora-skills-ort-core) | `hoc-` | `core` |
+| [`@openreachtech/hora-skills-ort-renchan`](https://github.com/openreachtech/hora-skills-ort-renchan)(このパッケージ) | `hor-` | `backend` |
+| [`@openreachtech/hora-skills-ort-furo`](https://github.com/openreachtech/hora-skills-ort-furo) | `hof-` | `frontend` |
+| [`@openreachtech/hora-skills-ort-support`](https://github.com/openreachtech/hora-skills-ort-support) | `hos-` | `support` |
 
 [**スキルカタログ**](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.ja.md) ([English](https://github.com/openreachtech/hora-skills-ort-renchan/blob/main/docs/skills.md)) — このパッケージに収録された全スキルの一覧と概要(1〜2 行)を、呼び出しコマンド名で並べています。
 
-ソースは `kit/skills/backend/<name>/` に配置され、`dist/` が公開されるビルド成果物です。同じスキルフォルダからドメインの階層だけを取り除いた形で、これが Claude Code の求めるフラットな構成です。スキルフォルダ名はそのスキルの `name:` であり、インストール後のフォルダ名でもあります。一貫して同じ 1 つの文字列なので、カタログで見た名前がそのまま入力するコマンドになります。
+ソースは `kit/skills/<name>/` に配置され、`dist/` が公開されるビルド成果物です。同じスキルフォルダをそのまま写した形で、これが Claude Code の求めるフラットな構成です。スキルフォルダ名はそのスキルの `name:` であり、インストール後のフォルダ名でもあります。一貫して同じ 1 つの文字列なので、カタログで見た名前がそのまま入力するコマンドになります。
 
 ## インストール
 
@@ -57,7 +57,7 @@ npx --no hora-skills-ort-renchan install
 
 ### 複数のドメインを入れる
 
-4 つのパッケージはいずれも同じ `.claude/skills/` に配置し、それぞれが自分の配置内容を `.hora/<パッケージ名>.json` に記録します。したがって、ある実行が削除するのはそのパッケージが配置したものだけで、他には手を触れません。
+`hora-skills` のパッケージはいずれも同じ `.claude/skills/` に配置し、それぞれが自分の配置内容を `.hora/<パッケージ名>.json` に記録します。したがって、ある実行が削除するのはそのパッケージが配置したものだけで、他には手を触れません。
 
 ```json
 {
