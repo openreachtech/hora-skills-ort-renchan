@@ -49,15 +49,15 @@
     "@openreachtech/renchan-env": "^1.0.6",
     "@types/jest": "^30.0.0",
     "eslint": "^9.39.5",
-    "jest": "^30.4.2"
+    "jest": "^30.5.1"
   },
   "overrides": {
     "@humanfs/node": "^0.16.8",
     "brace-expansion@5": "^5.0.9",
-    "flatted": "^3.4.2"
+    "flatted": "^3.4.4"
   },
   "allowScripts": {
-    "fsevents": false,
+    "@parcel/watcher": false,
     "unrs-resolver": false
   }
 }
