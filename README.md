@@ -104,10 +104,10 @@ A skill your own repository authored is left alone, as long as its name is not o
 | :-- | :-- |
 | `hora-skills-ort-renchan install` | Install every skill this package distributes, replacing the previously installed ones |
 | `hora-skills-ort-renchan list` | Print the skills this package distributes, installing nothing |
-| `hora-skills-ort-renchan uninstall` | Remove every skill this package installed, along with its record |
+| `hora-skills-ort-renchan uninstall` | Remove the skills this package installed into one directory, and the record of that installation |
 | `hora-skills-ort-renchan help` | Print the usage text |
 
-`--dir <path>` installs into a directory other than `.claude/skills`.
+`--dir <path>` names a directory other than `.claude/skills`, and `install` and `uninstall` take it alike. A repository that has installed into two of them therefore takes two `uninstall` runs, and the record file goes when the last of them does.
 
 ## Contribution
 

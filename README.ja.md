@@ -104,10 +104,10 @@ npx --no hora-skills-ort-renchan install
 | :-- | :-- |
 | `hora-skills-ort-renchan install` | このパッケージが配布する全スキルを配置し、前回配置したものを置き換える |
 | `hora-skills-ort-renchan list` | このパッケージが配布するスキルを表示する(配置はしない) |
-| `hora-skills-ort-renchan uninstall` | このパッケージが配置したスキルと、その記録を削除する |
+| `hora-skills-ort-renchan uninstall` | このパッケージが 1 つのディレクトリに配置したスキルと、その配置の記録を削除する |
 | `hora-skills-ort-renchan help` | 使い方を表示する |
 
-`--dir <path>` で `.claude/skills` 以外のディレクトリに配置できます。
+`--dir <path>` は `.claude/skills` 以外のディレクトリを名指しするもので、`install` と `uninstall` のどちらもこれを受けます。2 つのディレクトリに配置したリポジトリは、したがって `uninstall` を 2 回実行することになり、記録ファイルはその最後の 1 回で消えます。
 
 ## コントリビューション
 
