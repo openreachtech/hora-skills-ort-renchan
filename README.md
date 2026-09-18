@@ -57,7 +57,7 @@ The skills land in your repository's `.claude/skills/`. Claude Code discovers th
 
 ### Installing more than one domain
 
-Each `hora-skills` package installs into the same `.claude/skills/`, and each records its own installation in `.hora/<package name>.json`. A run therefore removes only what that package installed, and leaves the others alone:
+Each `hora-skills` package installs into the same `.claude/skills/`, and each records its own installation in `.hora/<package name, without its scope>.json`. A run therefore removes only what that package installed, and leaves the others alone:
 
 ```json
 {
@@ -73,7 +73,7 @@ Because a prefix belongs to exactly one package, and every skill's folder name i
 
 `.claude/`, and the `skills/` directory inside it, have to be directories of your repository rather than symbolic links. An installation verifies every step it is reached through, and finding a link at any of them it writes nothing and removes nothing. `.hora/hora-skills-ort-renchan.json`, the record of what was installed, is verified the same way: a link there would send the write to whatever it stands for and overwrite it.
 
-An installation that carries nothing says why and ends with a failing exit code. Where the command runs as your project's own `postinstall`, that is what `npm install` reports; run on its own, `npx --no hora-skills-ort-renchan install` tells you the same.
+An installation stopped by a link says which step it was, changes nothing, and ends with a failing exit code. Where the command runs as your project's own `postinstall`, that is what `npm install` reports; run on its own, `npx --no hora-skills-ort-renchan install` tells you the same.
 
 A link is content of the repository rather than an instruction of whoever runs the command, so following one would let the repository decide where skills are written and, worse, where the skills of the previous run are removed from.
 
@@ -104,10 +104,10 @@ A skill your own repository authored is left alone, as long as its name is not o
 | :-- | :-- |
 | `hora-skills-ort-renchan install` | Install every skill this package distributes, replacing the previously installed ones |
 | `hora-skills-ort-renchan list` | Print the skills this package distributes, installing nothing |
-| `hora-skills-ort-renchan uninstall` | Remove every skill this package installed, along with its record |
+| `hora-skills-ort-renchan uninstall` | Remove the skills this package installed into one directory, and the record of that installation |
 | `hora-skills-ort-renchan help` | Print the usage text |
 
-`--dir <path>` installs into a directory other than `.claude/skills`.
+`--dir <path>` names a directory other than `.claude/skills`, and `install` and `uninstall` take it alike. A repository that has installed into two of them therefore takes two `uninstall` runs, and the record file goes when the last of them does.
 
 ## Contribution
 

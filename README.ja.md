@@ -57,7 +57,7 @@ npx --no hora-skills-ort-renchan install
 
 ### 複数のドメインを入れる
 
-`hora-skills` のパッケージはいずれも同じ `.claude/skills/` に配置し、それぞれが自分の配置内容を `.hora/<パッケージ名>.json` に記録します。したがって、ある実行が削除するのはそのパッケージが配置したものだけで、他には手を触れません。
+`hora-skills` のパッケージはいずれも同じ `.claude/skills/` に配置し、それぞれが自分の配置内容を `.hora/<スコープを外したパッケージ名>.json` に記録します。したがって、ある実行が削除するのはそのパッケージが配置したものだけで、他には手を触れません。
 
 ```json
 {
@@ -73,7 +73,7 @@ npx --no hora-skills-ort-renchan install
 
 `.claude/` と、その中の `skills/` は、シンボリックリンクではなくリポジトリのディレクトリである必要があります。インストールは対象へ至る各段を検査し、いずれかがリンクであれば、何も書き込まず、何も削除せずに終了します。 インストール内容の記録である `.hora/hora-skills-ort-renchan.json` も同じように検査します。ここにリンクがあると、書き込みがリンク先へ届き、その中身を上書きしてしまうためです。
 
-何も運ばなかったインストールは、その理由を告げ、0 以外の終了コードで終わります。プロジェクト自身の `postinstall` として実行しているなら、それは `npm install` の出力に現れます。単独で実行した場合は `npx --no hora-skills-ort-renchan install` が同じことを告げます。
+リンクに当たって止まったインストールは、どの段だったかを告げ、何も変更せず、0 以外の終了コードで終わります。プロジェクト自身の `postinstall` として実行しているなら、それは `npm install` の出力に現れます。単独で実行した場合は `npx --no hora-skills-ort-renchan install` が同じことを告げます。
 
 リンクはコマンドを実行する人の指示ではなく、リポジトリの中身です。それを辿ると、スキルをどこへ書くか、そして前回のスキルをどこから消すかを、リポジトリ側が決められることになります。
 
@@ -104,10 +104,10 @@ npx --no hora-skills-ort-renchan install
 | :-- | :-- |
 | `hora-skills-ort-renchan install` | このパッケージが配布する全スキルを配置し、前回配置したものを置き換える |
 | `hora-skills-ort-renchan list` | このパッケージが配布するスキルを表示する(配置はしない) |
-| `hora-skills-ort-renchan uninstall` | このパッケージが配置したスキルと、その記録を削除する |
+| `hora-skills-ort-renchan uninstall` | このパッケージが 1 つのディレクトリに配置したスキルと、その配置の記録を削除する |
 | `hora-skills-ort-renchan help` | 使い方を表示する |
 
-`--dir <path>` で `.claude/skills` 以外のディレクトリに配置できます。
+`--dir <path>` は `.claude/skills` 以外のディレクトリを名指しするもので、`install` と `uninstall` のどちらもこれを受けます。2 つのディレクトリに配置したリポジトリは、したがって `uninstall` を 2 回実行することになり、記録ファイルはその最後の 1 回で消えます。
 
 ## コントリビューション
 
