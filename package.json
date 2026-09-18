@@ -57,7 +57,7 @@
     "flatted": "^3.4.4"
   },
   "allowScripts": {
-    "fsevents": false,
+    "@parcel/watcher": false,
     "unrs-resolver": false
   }
 }
