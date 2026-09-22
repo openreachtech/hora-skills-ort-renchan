@@ -271,19 +271,20 @@ split files per class.
   - **On success** (`error: null`, `output` present) → **dispatch is called** with the expected
     `DispatcherCtor` and `body`.
   - **On failure** (`error` present) → **dispatch is not called** (early return).
-- Stub the dispatch entry point. Replace `context.share.jobDispatcherProvider.dispatchJob` with a
-  `jest.fn()` and verify the arguments (`DispatcherCtor` / `body`). **Don't actually enqueue a job.**
+- Stub the dispatch entry point. Give `context.share.jobDispatcherProvider.dispatchJob` a stub
+  function, spy that property with `jest.spyOn()`, and verify the arguments (`DispatcherCtor` /
+  `body`). **Don't actually enqueue a job.**
 
 ```js
 // Success case: verify only that dispatch is called with the correct Dispatcher and body
-const dispatchJobSpy = jest.fn()
 const context = {
   share: {
     jobDispatcherProvider: {
-      dispatchJob: dispatchJobSpy,
+      dispatchJob: async () => null,
     },
   },
 }
+const dispatchJobSpy = jest.spyOn(context.share.jobDispatcherProvider, 'dispatchJob')
 
 await SignUpPostWorker.create({ engine })
   .onResolved({
