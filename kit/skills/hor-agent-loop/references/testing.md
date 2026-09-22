@@ -9,7 +9,7 @@ These follow the **`hoc-jest` skill** — read it for the general rules; this fi
 applies them to the agent-loop classes. In short: one file per class; nest
 `describe(ClassName) > describe('#member()' / '.get:member') > describe('should …') > test.each(cases)`;
 write each test as **Arrange / Act / Assert** separated by blank lines, taking the Act result into a
-`received` variable; bind every `jest.fn()` to a `~Spy` variable; and keep `cases` data unique and
+`received` variable; bind every spy to a `~Spy` variable; and keep `cases` data unique and
 index-readable (`fake-keyword-0001`, `100001`, …).
 
 ## Grand principle: swap `context` for a stub and touch no real I/O
@@ -91,19 +91,18 @@ describe('SearchAction', () => {
       ]
 
       test.each(cases)('keyword: $tally.keyword', async ({ tally }) => {
-        const searchSpy = jest.fn()
-          .mockResolvedValue({
-            items: [], // neutral; not under test
-          })
         const args = {
           argumentHash: tally,
           context: {
             searchClient: {
-              search: searchSpy,
+              search: async () => ({
+                items: [], // neutral; not under test
+              }),
             },
           },
-          onProgress: jest.fn(),
+          onProgress: () => {},
         }
+        const searchSpy = jest.spyOn(args.context.searchClient, 'search')
 
         await SearchAction.create()
           .run(args)
@@ -138,18 +137,16 @@ describe('SearchAction', () => {
       ]
 
       test.each(cases)('keyword: $input.keyword', async ({ input, expected }) => {
-        const searchSpy = jest.fn()
-          .mockResolvedValue(expected)
         const args = {
           argumentHash: {
             keyword: input.keyword,
           },
           context: {
             searchClient: {
-              search: searchSpy,
+              search: async () => expected,
             },
           },
-          onProgress: jest.fn(),
+          onProgress: () => {},
         }
 
         const received = await SearchAction.create()
@@ -281,7 +278,7 @@ describe('ResearchJobWorker', () => {
         const worker = new ResearchJobWorker({
           engine: {
             subscriptionBroker: {
-              publish: jest.fn(),
+              publish: async () => null,
             },
           },
           config: {
@@ -295,7 +292,6 @@ describe('ResearchJobWorker', () => {
           errorHash: {},
         })
 
-        const updateProgressSpy = jest.fn()
         const args = {
           body: {
             jobId: input.jobId,
@@ -304,11 +300,12 @@ describe('ResearchJobWorker', () => {
           parcel: {
             jobModel: {
               job: {
-                updateProgress: updateProgressSpy,
+                updateProgress: async () => null,
               },
             },
           },
         }
+        const updateProgressSpy = jest.spyOn(args.parcel.jobModel.job, 'updateProgress')
 
         await worker.executeJob(args)
 
@@ -366,11 +363,6 @@ describe('RequestResearchMutationResolver', () => {
           errorHash: {},
         })
 
-        const dispatchJobSpy = jest.fn()
-          .mockResolvedValue({
-            hasResponse: () => true,
-            idKey: expected.jobId,
-          })
         const args = {
           variables: {
             input: {
@@ -380,7 +372,10 @@ describe('RequestResearchMutationResolver', () => {
           context: {
             share: {
               jobDispatcherProvider: {
-                dispatchJob: dispatchJobSpy,
+                dispatchJob: async () => ({
+                  hasResponse: () => true,
+                  idKey: expected.jobId,
+                }),
               },
             },
           },
