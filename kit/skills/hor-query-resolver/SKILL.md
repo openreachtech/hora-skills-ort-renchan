@@ -169,11 +169,10 @@ static get errorCodeHash () {
 }
 ```
 
-- **Leading number = error family.** `203` invalid input, `204` database / not-found, `205` business
-  logic / external API. (Framework standards live above these: `102` unauthorized, `104` database —
-  do not redefine them.)
-- **Middle segment (`Q002`) is a stable per-query identifier**; the trailing `001…` numbers the
-  errors within this resolver. Keep a given resolver on one identifier and add sequentially.
+- **The code's shape and its categories are settled by `hoc-error-codes`.** What a query resolver
+  decides is which category each of its own errors takes: `203` for what the validator rejects,
+  `204` for what the database does not hold. The framework's own codes are declared by the engine
+  below, and are never redeclared here.
 - **Input-shape errors** (`InvalidXxx`) are raised by the validator via the shared `errorHash`, so
   their names must exist here. **Domain errors** (`XxxNotFound`, `NoXxxFound`) are thrown from
   `resolve()` with `this.errorHash.Xxx.create()` (optionally through a `createXxxError()` helper).
