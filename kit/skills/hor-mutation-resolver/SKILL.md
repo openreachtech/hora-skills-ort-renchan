@@ -146,12 +146,12 @@ The full template with every helper filled in is in
 ## 3. `errorCodeHash` and throwing errors
 
 Declare every error the resolver can raise in `static get errorCodeHash ()`, spreading
-`...super.errorCodeHash` first. Each entry maps an `ErrorName` to a **code string** whose leading
-segment encodes the category:
+`...super.errorCodeHash` first. Each entry maps an `ErrorName` to a **code string**, whose shape
+and categories `hoc-error-codes` settles. The ones a mutation resolver reaches for:
 
-- `203.*` — **invalid input** (`InvalidXxx`). These pair with the validator's predicates (§6).
-- `204.*` — **DB / state** errors (`XxxNotFound`, `NotAllowedToXxx`, `CurrentXxxIsSameAsTheNewOne`).
-- `205.*` — **auth** errors (`InvalidCredentials`).
+- `203.*` — **validational** (`InvalidXxx`). These pair with the validator's predicates (§6).
+- `204.*` — **database record** (`XxxNotFound`, `NotAllowedToXxx`, `CurrentXxxIsSameAsTheNewOne`).
+- `202.*` — **access right** (`InvalidCredentials`).
 
 ```js
 /** @override */
@@ -173,7 +173,7 @@ static get errorCodeHash () {
 The base turns this hash into constructable error classes on `this.errorHash` (via
 `buildErrorHash()` in the factory). **Throw with `this.errorHash.<Name>.create()`** — validator
 errors bubble out of `resolve()`; state errors are thrown from inside the transaction callback so
-the transaction rolls back. Codes, numbering (`M###`), and the wiring are in
+the transaction rolls back. Which category each error falls into, and the wiring, are in
 [errors.md](./references/errors.md).
 
 ## 4. `generateTransactionCallback()` — one transaction, all writes
@@ -352,7 +352,7 @@ project-wide jest rules unchanged. Full placement detail in [testing.md](./refer
 - [transaction.md](./references/transaction.md) — `generateTransactionCallback` in depth:
   one-transaction rule, `beginTransaction`, nested-create `include`, existence guards, `.set()`+
   `.save()` vs `.update()`, throwing state errors, post-commit side effects (§4)
-- [errors.md](./references/errors.md) — `errorCodeHash` categories (203/204/205), `M###` numbering,
+- [errors.md](./references/errors.md) — which category each error falls into,
   `this.errorHash.<Name>.create()`, and how the base builds the error hash (§3)
 - [dependency-injection.md](./references/dependency-injection.md) — `constructor` + `static create()`
   + `static createXxx()` factory helpers, when to inject, `buildErrorHash` wiring (§7)
