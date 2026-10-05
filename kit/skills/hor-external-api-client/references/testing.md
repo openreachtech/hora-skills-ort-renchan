@@ -39,17 +39,19 @@ The unit-test conventions for an external API client. The files live under
 - That the base launcher extends `BaseLauncher`, and that `clientConfig` returns the expected
   connection settings.
 - That the derived launcher's `Payload` / `Capsule` return the right classes.
-- That `launchRequest()`, with **`fetch` stubbed** (by replacing `static get fetch ()`), is called with
-  the correct `Request` (URL, method, headers, body) and returns a `Capsule`.
+- That `launchRequest()`, with **`fetch` spied** (`static get fetch ()` returns the native one, so the
+  spy goes there), is called with the correct `Request` (URL, method, headers, body) and returns a
+  `Capsule`.
 - For an SDK wrapper ([sdk-wrapper.md](./sdk-wrapper.md)), inject a stub SDK through
   `create({ sdkClient })` and assert that `launchRequest()` calls the SDK method with the right
   arguments and returns the result carried in a `Capsule`.
 
-## Replace `fetch` by overriding it in a sub-class
+## Spy the native `fetch` the getter returns
 
-Stub `fetch` by creating an anonymous class inside the test that extends `CreateDocumentLauncher` and
-overrides `static get fetch ()`. Have `jest.fn().mockResolvedValue(...)` return a `Response`, then assert
-that it was called and what the `Capsule` extracted.
+`static get fetch ()` returns the native `fetch`, so leave the getter alone and spy the real function
+it hands back — the shape `hoc-jest` gives for a getter that returns a function. Have
+`jest.spyOn(globalThis, 'fetch').mockResolvedValue(...)` return a `Response`, then assert that it was
+called and what the `Capsule` extracted. No sub-class is needed.
 
 ```js
 import CreateDocumentLauncher from '../../../../app/documentApiClient/CreateDocumentLauncher.js'
@@ -97,19 +99,12 @@ describe('CreateDocumentLauncher', () => {
           status: 200,
         }
       )
-      const fetchSpy = jest.fn()
+      const fetchSpy = jest.spyOn(globalThis, 'fetch')
         .mockResolvedValue(responseTally)
 
-      const SpyLauncher = class extends CreateDocumentLauncher {
-        /** @override */
-        static get fetch () {
-          return fetchSpy
-        }
-      }
+      const launcher = CreateDocumentLauncher.create()
 
-      const launcher = SpyLauncher.create()
-
-      const payload = SpyLauncher.createPayload(params)
+      const payload = CreateDocumentLauncher.createPayload(params)
 
       const capsule = await launcher.launchRequest({
         payload,
