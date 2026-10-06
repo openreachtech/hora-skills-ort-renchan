@@ -34,28 +34,35 @@ git ls-files | grep -E '(^|/)\.env'             # env files TRACKED in git — s
   is judged in check 13.
 - **PASS:** every production-facing env file is ignored and untracked.
 
-## 13. No secrets in committed env files; secret-free template present
+## 13. Committed env files hold only values that reach the local machine
 
-Committed env files (a template, or any per-env file that is tracked) must not carry real secret
-**values**. Inspect key names and whether their values are populated — **do not echo the values**;
-grep key names and mask.
+A tracked local env file (check 12) is allowed on a condition, so **every one is read, every time** —
+this check is never skipped, and never answered from the file's name. Read each file, and report
+values **masked**: whether a value is local is judged on its shape, and the report never echoes it.
+
+| Allowed in a local env file | A finding wherever it sits |
+|---|---|
+| an endpoint on `127.0.0.1` or `localhost` — `http://localhost:3000` included | an external host |
+| a placeholder credential — `user` / `password` and their like | a real staging or production endpoint |
+| the connection of a CI or test database (`live`) | a key-shaped value — an API key, a token, a private key |
 
 ```bash
-# For each TRACKED env file (from check 12), list secret-bearing key NAMES only:
+# For each TRACKED local env file (from check 12), list every key, whether it holds a value MASKED:
 git ls-files | grep -E '(^|/)\.env' | while read f; do echo "== $f =="; \
-  grep -oE '^[A-Za-z0-9_]+=' "$f" 2>/dev/null | grep -iE 'PASSWORD|SECRET|TOKEN|API_?KEY|PRIVATE|CREDENTIAL|_KEY|DSN|CONNECTION'; done
-# For each such key, check ONLY whether a value is present, and MASK it, e.g.:
-#   grep -E '^SOME_API_KEY=' <file> | sed -E 's/=.{0,4}.*/=****(masked)/'
+  sed -E 's/=.+$/=****(masked)/' "$f"; done
+# Hosts are the one value read in full, since locality is the point: any that is not local is a
+# finding. Credentials inside a URL are masked first:
+git ls-files | grep -E '(^|/)\.env' | xargs grep -nE '(HOST|URL|ENDPOINT|DSN)[A-Z_]*=' \
+  | sed -E 's#://[^@/]*@#://****@#' \
+  | grep -vE '=([a-z+]+://)?(\*\*\*\*@)?(127\.0\.0\.1|localhost)([:/]|$)'
 ```
 
-- **FINDING (HIGH):** a real secret value sits in a committed env file. Recommend replacing it with a
-  placeholder, moving the real value to an untracked file / secret manager, and rotating.
-- **Best practice to recommend:** keep exactly one committed, **secret-free** template (e.g.
-  `.env.example`) listing every required key with placeholder values, and source **all** real
-  credentials for non-local environments from env / a secret manager — never commit them, and do
-  not leave per-env files (`.env.staging`, `.env.production`) tracked.
-- **PASS:** values are empty / obvious placeholders (`your-key-here`, `changeme`, `xxxx`), and a
-  secret-free template exists.
+- **An auditor told not to read env files reports this check as BLOCKED, never as passed.** The
+  allowance in check 12 rests on this reading; without it, nothing says the file stayed local.
+- **FINDING (HIGH):** a tracked local env file holds a value outside the allowed column — an external
+  host, a real staging or production endpoint, a key-shaped value. Recommend moving the value to a
+  production-facing file or a secret manager, and rotating it if it was real.
+- **PASS:** every tracked local env file holds only allowed values.
 
 ## 14. No hardcoded secrets in code / config
 
