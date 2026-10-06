@@ -195,7 +195,13 @@ by default: `NODE_ENV=<stack-env>` selects the E2E stack's own values everywhere
 on every command remembering to apply overrides.
 
 The stack reads its own committed **`.env.<stack-env>`**, at the repository root beside the other
-environments' files. Two rules govern that file:
+environments' files. Three rules govern that file:
+
+- **It holds only values that reach the local machine.** It is a local env file, which may be
+  committed only on that condition: endpoints on `127.0.0.1` or `localhost`, placeholder credentials,
+  the connection of the stack's own database. An external host, a real staging or production endpoint,
+  or a key-shaped value — an API key, a token — never goes in it. This is the line the security
+  audit's checks 12 to 14 hold, and it reads the file to confirm it.
 
 - **It is a complete, standalone description of the E2E stack.** Every key the application, the
   tooling and the background processes read has to be present, because a missing key reads as `null`
