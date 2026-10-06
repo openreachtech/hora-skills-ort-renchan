@@ -4,27 +4,35 @@
 plaintext passwords in seed / fixture data. Referenced from [SKILL.md](../SKILL.md). **Mask every
 secret value in the report.**
 
-## 12. Env files covered by `.gitignore` (all variants)
+## 12. Production-facing env files covered by `.gitignore`
+
+Env files fall on two sides of one line, and the check differs by side.
+
+| Side | Files | May be tracked |
+|---|---|---|
+| **production-facing** | `.env`, `.env.production`, `.env.prod`, `.env.staging` | never. `.env.staging` is shared with a client at times, so it is held as production |
+| **local** | every other per-environment file — `.env.development`, `.env.live`, `.env.live-local`, `.env.test` and their like | yes, holding only values that reach the local machine (check 13) |
 
 A `.gitignore` with a bare `.env` line matches **only** a file named exactly `.env` — it does **not**
-match `.env.development`, `.env.staging`, `.env.production`, `.env.local`, etc. Those variants stay
-trackable and are easily committed with real secrets.
+match `.env.production`, `.env.staging` or `.env.prod`. Those stay trackable and are easily committed
+with real secrets.
 
 ```bash
 ls -a | grep -E '^\.env'                        # which env files exist on disk
 git check-ignore -v .env .env.* 2>/dev/null     # prints the matching rule for each IGNORED file
-git ls-files | grep -E '(^|/)\.env'             # env files TRACKED in git (should usually be only a template)
+git ls-files | grep -E '(^|/)\.env'             # env files TRACKED in git — sort each onto its side
 ```
 
 - **Important:** adding a pattern to `.gitignore` does **not** untrack a file that is already
-  committed — `.gitignore` only affects untracked files. If an env file is already tracked, it must be
-  removed from the index with `git rm --cached <file>` (and the secret rotated). Verify with
-  `git ls-files`, not just by reading `.gitignore`.
-- **FINDING (HIGH if the tracked file holds real secrets, else MEDIUM):** any `.env*` file with
-  secrets is **tracked** or **not ignored**. Recommend a broad ignore (e.g. `.env*` with a
-  `!.env.example` negation), `git rm --cached` for anything already tracked, and — if a secret was
-  ever committed — rotating it and purging history.
-- **PASS:** every secret-bearing env file is ignored; only a secret-free template is tracked.
+  committed — `.gitignore` only affects untracked files. If a production-facing env file is already
+  tracked, it must be removed from the index with `git rm --cached <file>` (and the secret rotated).
+  Verify with `git ls-files`, not just by reading `.gitignore`.
+- **FINDING (HIGH if the tracked file holds real secrets, else MEDIUM):** a production-facing env file
+  is **tracked** or **not ignored**. Recommend ignoring each by name, `git rm --cached` for anything
+  already tracked, and — if a secret was ever committed — rotating it and purging history.
+- **A local env file that is tracked is not a finding here.** Tracking it is allowed; what it holds
+  is judged in check 13.
+- **PASS:** every production-facing env file is ignored and untracked.
 
 ## 13. No secrets in committed env files; secret-free template present
 
