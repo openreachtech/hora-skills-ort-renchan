@@ -4,50 +4,65 @@
 plaintext passwords in seed / fixture data. Referenced from [SKILL.md](../SKILL.md). **Mask every
 secret value in the report.**
 
-## 12. Env files covered by `.gitignore` (all variants)
+## 12. Production-facing env files covered by `.gitignore`
+
+Env files fall on two sides of one line, and the check differs by side.
+
+| Side | Files | May be tracked |
+|---|---|---|
+| **production-facing** | `.env`, `.env.production`, `.env.prod`, `.env.staging` | never. `.env.staging` is shared with a client at times, so it is held as production |
+| **local** | every other per-environment file — `.env.development`, `.env.live`, `.env.live-local`, `.env.test` and their like | yes, holding only values that reach the local machine (check 13) |
 
 A `.gitignore` with a bare `.env` line matches **only** a file named exactly `.env` — it does **not**
-match `.env.development`, `.env.staging`, `.env.production`, `.env.local`, etc. Those variants stay
-trackable and are easily committed with real secrets.
+match `.env.production`, `.env.staging` or `.env.prod`. Those stay trackable and are easily committed
+with real secrets.
 
 ```bash
 ls -a | grep -E '^\.env'                        # which env files exist on disk
 git check-ignore -v .env .env.* 2>/dev/null     # prints the matching rule for each IGNORED file
-git ls-files | grep -E '(^|/)\.env'             # env files TRACKED in git (should usually be only a template)
+git ls-files | grep -E '(^|/)\.env'             # env files TRACKED in git — sort each onto its side
 ```
 
 - **Important:** adding a pattern to `.gitignore` does **not** untrack a file that is already
-  committed — `.gitignore` only affects untracked files. If an env file is already tracked, it must be
-  removed from the index with `git rm --cached <file>` (and the secret rotated). Verify with
-  `git ls-files`, not just by reading `.gitignore`.
-- **FINDING (HIGH if the tracked file holds real secrets, else MEDIUM):** any `.env*` file with
-  secrets is **tracked** or **not ignored**. Recommend a broad ignore (e.g. `.env*` with a
-  `!.env.example` negation), `git rm --cached` for anything already tracked, and — if a secret was
-  ever committed — rotating it and purging history.
-- **PASS:** every secret-bearing env file is ignored; only a secret-free template is tracked.
+  committed — `.gitignore` only affects untracked files. If a production-facing env file is already
+  tracked, it must be removed from the index with `git rm --cached <file>` (and the secret rotated).
+  Verify with `git ls-files`, not just by reading `.gitignore`.
+- **FINDING (HIGH if the tracked file holds real secrets, else MEDIUM):** a production-facing env file
+  is **tracked** or **not ignored**. Recommend ignoring each by name, `git rm --cached` for anything
+  already tracked, and — if a secret was ever committed — rotating it and purging history.
+- **A local env file that is tracked is not a finding here.** Tracking it is allowed; what it holds
+  is judged in check 13.
+- **PASS:** every production-facing env file is ignored and untracked.
 
-## 13. No secrets in committed env files; secret-free template present
+## 13. Committed env files hold only values that reach the local machine
 
-Committed env files (a template, or any per-env file that is tracked) must not carry real secret
-**values**. Inspect key names and whether their values are populated — **do not echo the values**;
-grep key names and mask.
+A tracked local env file (check 12) is allowed on a condition, so **every one is read, every time** —
+this check is never skipped, and never answered from the file's name. Read each file, and report
+values **masked**: whether a value is local is judged on its shape, and the report never echoes it.
+
+| Allowed in a local env file | A finding wherever it sits |
+|---|---|
+| an endpoint on `127.0.0.1` or `localhost` — `http://localhost:3000` included | an external host |
+| a placeholder credential — `user` / `password` and their like | a real staging or production endpoint |
+| the connection of a CI or test database (`live`) | a key-shaped value — an API key, a token, a private key |
 
 ```bash
-# For each TRACKED env file (from check 12), list secret-bearing key NAMES only:
+# For each TRACKED local env file (from check 12), list every key, whether it holds a value MASKED:
 git ls-files | grep -E '(^|/)\.env' | while read f; do echo "== $f =="; \
-  grep -oE '^[A-Za-z0-9_]+=' "$f" 2>/dev/null | grep -iE 'PASSWORD|SECRET|TOKEN|API_?KEY|PRIVATE|CREDENTIAL|_KEY|DSN|CONNECTION'; done
-# For each such key, check ONLY whether a value is present, and MASK it, e.g.:
-#   grep -E '^SOME_API_KEY=' <file> | sed -E 's/=.{0,4}.*/=****(masked)/'
+  sed -E 's/=.+$/=****(masked)/' "$f"; done
+# Hosts are the one value read in full, since locality is the point: any that is not local is a
+# finding. Credentials inside a URL are masked first:
+git ls-files | grep -E '(^|/)\.env' | xargs grep -nE '(HOST|URL|ENDPOINT|DSN)[A-Z_]*=' \
+  | sed -E 's#://[^@/]*@#://****@#' \
+  | grep -vE '=([a-z+]+://)?(\*\*\*\*@)?(127\.0\.0\.1|localhost)([:/]|$)'
 ```
 
-- **FINDING (HIGH):** a real secret value sits in a committed env file. Recommend replacing it with a
-  placeholder, moving the real value to an untracked file / secret manager, and rotating.
-- **Best practice to recommend:** keep exactly one committed, **secret-free** template (e.g.
-  `.env.example`) listing every required key with placeholder values, and source **all** real
-  credentials for non-local environments from env / a secret manager — never commit them, and do
-  not leave per-env files (`.env.staging`, `.env.production`) tracked.
-- **PASS:** values are empty / obvious placeholders (`your-key-here`, `changeme`, `xxxx`), and a
-  secret-free template exists.
+- **An auditor told not to read env files reports this check as BLOCKED, never as passed.** The
+  allowance in check 12 rests on this reading; without it, nothing says the file stayed local.
+- **FINDING (HIGH):** a tracked local env file holds a value outside the allowed column — an external
+  host, a real staging or production endpoint, a key-shaped value. Recommend moving the value to a
+  production-facing file or a secret manager, and rotating it if it was real.
+- **PASS:** every tracked local env file holds only allowed values.
 
 ## 14. No hardcoded secrets in code / config
 
@@ -62,12 +77,23 @@ git grep -nE "AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|AK
 ```
 
 - **Pay special attention to connection / datastore config files** — per-environment blocks commonly
-  carry hardcoded `username` / `password`. Hardcoded credentials in a committed config file are a
-  finding **even if they look like placeholders**, because they normalize the pattern; production
-  credentials should come from env / a secret manager.
-- **FINDING (HIGH real / MEDIUM placeholder):** a literal credential in tracked code / config.
-  Recommend sourcing from env / a secret manager; rotate if real.
-- **PASS:** credentials only ever come from `process.env` / a config facade.
+  carry hardcoded `username` / `password`. **A production or staging block takes its credentials from
+  the environment**, and a literal there is a finding even if it looks like a placeholder, because
+  it normalizes the pattern where it does harm.
+- **The same line as check 13 holds outside env files.** A placeholder credential is not a finding
+  where only the local machine is reached by it:
+
+  | Not a finding | Why |
+  |---|---|
+  | the compose of local middleware whose ports are published on `127.0.0.1` only | nothing off the machine reaches it |
+  | the config of a CI or test database | it holds test data, and is rebuilt from nothing |
+
+  A port published on every interface (`3306:3306`, `0.0.0.0:…`) takes the compose out of the first
+  row, and its credentials are a finding again.
+- **FINDING (HIGH real / MEDIUM placeholder):** a literal credential in tracked code / config, outside
+  the two rows above. Recommend sourcing from env / a secret manager; rotate if real.
+- **PASS:** credentials come from `process.env` / a config facade, or are placeholders where only the
+  local machine reaches them.
 
 ## 15. No plaintext passwords / secrets in seed / fixture data
 
