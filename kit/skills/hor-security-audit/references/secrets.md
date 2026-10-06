@@ -77,12 +77,23 @@ git grep -nE "AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|AK
 ```
 
 - **Pay special attention to connection / datastore config files** — per-environment blocks commonly
-  carry hardcoded `username` / `password`. Hardcoded credentials in a committed config file are a
-  finding **even if they look like placeholders**, because they normalize the pattern; production
-  credentials should come from env / a secret manager.
-- **FINDING (HIGH real / MEDIUM placeholder):** a literal credential in tracked code / config.
-  Recommend sourcing from env / a secret manager; rotate if real.
-- **PASS:** credentials only ever come from `process.env` / a config facade.
+  carry hardcoded `username` / `password`. **A production or staging block takes its credentials from
+  the environment**, and a literal there is a finding even if it looks like a placeholder, because
+  it normalizes the pattern where it does harm.
+- **The same line as check 13 holds outside env files.** A placeholder credential is not a finding
+  where only the local machine is reached by it:
+
+  | Not a finding | Why |
+  |---|---|
+  | the compose of local middleware whose ports are published on `127.0.0.1` only | nothing off the machine reaches it |
+  | the config of a CI or test database | it holds test data, and is rebuilt from nothing |
+
+  A port published on every interface (`3306:3306`, `0.0.0.0:…`) takes the compose out of the first
+  row, and its credentials are a finding again.
+- **FINDING (HIGH real / MEDIUM placeholder):** a literal credential in tracked code / config, outside
+  the two rows above. Recommend sourcing from env / a secret manager; rotate if real.
+- **PASS:** credentials come from `process.env` / a config facade, or are placeholders where only the
+  local machine reaches them.
 
 ## 15. No plaintext passwords / secrets in seed / fixture data
 
