@@ -76,8 +76,8 @@ type). **LOW** = hardening gap. **INFO** = worth noting, not a vulnerability.
 | 9 | Introspection / playground / debug endpoints disabled in prod | [auth-and-transport.md](./references/auth-and-transport.md) |
 | 10 | CORS scoped (not wildcard in production) | [auth-and-transport.md](./references/auth-and-transport.md) |
 | 11 | Rate limiting on public endpoints (and not bypassable) | [auth-and-transport.md](./references/auth-and-transport.md) |
-| 12 | Env files covered by `.gitignore` (all variants) | [secrets.md](./references/secrets.md) |
-| 13 | No secrets in committed env files; secret-free template present | [secrets.md](./references/secrets.md) |
+| 12 | Production-facing env files covered by `.gitignore` | [secrets.md](./references/secrets.md) |
+| 13 | Committed env files hold only values that reach the local machine | [secrets.md](./references/secrets.md) |
 | 14 | No hardcoded secrets in code / config | [secrets.md](./references/secrets.md) |
 | 15 | No plaintext passwords / secrets in seed / fixture data | [secrets.md](./references/secrets.md) |
 | 16 | No vulnerable dependencies (advisory audit) | [dependencies.md](./references/dependencies.md) |

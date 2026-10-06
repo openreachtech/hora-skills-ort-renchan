@@ -1,13 +1,13 @@
 # Errors, context, and actual-vs-stub
 
-The errorCodeHash prefix families, the validator↔errorHash contract, domain-error creators, reading
-auth and injected providers off `context`, and the actual-vs-stub split. Referenced from §1 and §4 of
-[SKILL.md](../SKILL.md).
+The categories a query resolver's codes take, the validator↔errorHash contract, domain-error
+creators, reading auth and injected providers off `context`, and the actual-vs-stub split.
+Referenced from §1 and §4 of [SKILL.md](../SKILL.md).
 
 > The `users` / `User` / `Department` names and the `Q001` / `Q002` identifiers are placeholders —
 > swap in your resource and this resolver's own identifier.
 
-## errorCodeHash: families and identifiers
+## errorCodeHash: which category each error takes
 
 `errorCodeHash` maps each error **name** to a **string code**; the framework's `create()` turns those
 into the `this.errorHash.<Name>` constructors the resolver and its validator throw. Always spread
@@ -30,18 +30,14 @@ static get errorCodeHash () {
 }
 ```
 
-Code format is `<family>.<identifier>.<seq>`:
+The code's shape, and the categories its leading digits sort a failure into, are settled by
+`hoc-error-codes`. What a query resolver decides is which category each of its own errors takes:
 
-- **`<family>`** — the leading number classifies the error:
-  - `203` — invalid input (raised by the `*InputValidator`).
-  - `204` — database / not-found (thrown from `resolve()`).
-  - `205` — business logic / external API.
-  - Framework standards sit above these and are already defined by the engine — do **not** redeclare
-    them: `102` unauthenticated / unauthorized / denied-permission, `104` database, `100` unknown,
-    `101` concrete-member-not-found.
-- **`<identifier>`** (`Q002`, …) is a **stable per-query id**. Keep one resolver on one identifier;
-  the letter tracks the endpoint family (`Q` for the query endpoints).
-- **`<seq>`** (`001`, `002`, …) numbers the errors within this resolver, per family.
+- `203` — validational, raised by the `*InputValidator`.
+- `204` — database record, thrown from `resolve()`.
+
+The framework's own codes are already declared by the engine — `102` access right, `104` database
+record, `100` unknown, `101` implementational — and a resolver never redeclares one.
 
 ## The validator ↔ errorHash contract
 

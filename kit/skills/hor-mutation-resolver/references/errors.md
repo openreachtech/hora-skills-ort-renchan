@@ -22,28 +22,25 @@ static get errorCodeHash () {
     // Database Errors
     UserNotFound: '204.M024.001',
 
-    // Authentication Errors
-    InvalidCredentials: '205.M024.001',
+    // Access Right Errors
+    InvalidCredentials: '202.M024.001',
   }
 }
 ```
 
-## The code string: `<category>.<M###>.<seq>`
+## Which category an error falls into
 
-Each value is a dotted string with three parts:
+The code string itself is settled by `hoc-error-codes` — its three parts, the categories the
+leading one sorts a failure into, and the rule that a code already in use is never renumbered.
+What a mutation resolver decides is which category each of its own errors belongs to, and where
+that error is thrown from.
 
-- **`<category>`** — the leading segment classifies the failure:
-  - `203` — **invalid input**. Names are `InvalidXxx` and correspond 1:1 to the validator's
-    predicates (`InvalidTitle` ↔ `isValidTitle`), per the project's resolver-validator conventions.
-  - `204` — **DB / state**. `XxxNotFound`, `NotAllowedToXxx`, `CurrentXxxIsSameAsTheNewOne`. Thrown
-    from inside the transaction callback ([transaction.md](./transaction.md)).
-  - `205` — **auth**. `InvalidCredentials` and the like.
-- **`<M###>`** — the resolver's own identifier (`M024`, `M027`, `M043`, …). All codes in one
-  resolver share the same `M###`; it is unique per resolver so a code pins down which resolver
-  raised it.
-- **`<seq>`** — a zero-padded running number within the resolver (`001`, `002`, …). Numbering is
-  usually contiguous within a category; a gap from a removed code is fine — do not renumber existing
-  codes (they may be referenced by clients).
+- **`203`, validational.** Names are `InvalidXxx` and correspond 1:1 to the validator's predicates
+  (`InvalidTitle` ↔ `isValidTitle`), per the project's resolver-validator conventions.
+- **`204`, database record.** `XxxNotFound`, `NotAllowedToXxx`, `CurrentXxxIsSameAsTheNewOne`.
+  Thrown from inside the transaction callback ([transaction.md](./transaction.md)).
+- **`202`, access right.** A credential that does not match, a principal barred from what it asked
+  for — `InvalidCredentials` and the like.
 
 - **Name = the reason, not the field alone.** `InvalidPublishedAt`, `TagNotFound`,
   `NotAllowedToEditArticle` — read as a sentence at the throw site. No `info`/`data`/`error`
