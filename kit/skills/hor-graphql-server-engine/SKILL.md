@@ -119,11 +119,11 @@ export default class PartnerGraphqlServerEngine extends BaseAppGraphqlServerEngi
 | `actualResolversPath` | Directory of the real resolvers (`.../resolvers/<role>/actual/`), or `null`. |
 | `stubResolversPath` | Directory of stub resolvers (`.../resolvers/<role>/stub/`), or `null`. |
 | `postWorkersPath` | Directory of post-workers, or `null` when unused ([§7](#7-post-resolve-hooks-defineonresolved--postworkerspath)). |
-| `redisOptions?` | Redis connection for subscription PubSub; omit / `null` → in-process `LocalPubSub` ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)). |
+| `redisOptions?` | Redis connection for subscription PubSub, read by the subscription broker. The engine leaves it out; the Share adds it from `env` when it creates the broker ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)). `null` → in-process `LocalPubSub` ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)). |
 
 ```js
-// Good: config is a pure routing declaration; paths via rootPath.to(), redis resolved in env
-import { rootPath, env } from '../../app/globals/_.js'
+// Good: config is a pure routing declaration with paths via rootPath.to(), and no env import
+import { rootPath } from '../../app/globals/_.js'
 
 /** @override */
 static get config () {
@@ -134,10 +134,20 @@ static get config () {
     actualResolversPath: rootPath.to('server/graphql/resolvers/customer/actual/'),
     stubResolversPath: rootPath.to('server/graphql/resolvers/customer/stub/'),
     postWorkersPath: rootPath.to('server/graphql/post-workers/customer/'),
-    redisOptions: {
-      host: env.REDIS_HOST,
-      port: env.REDIS_PORT,
-    },
+  }
+}
+```
+
+```js
+// Bad: the engine imports env to fill redisOptions
+import { rootPath, env } from '../../app/globals/_.js'
+
+/** @override */
+static get config () {
+  return {
+    graphqlEndpoint: '/graphql-customer',
+    // ...
+    redisOptions: env.redisOptions,
   }
 }
 ```
@@ -146,11 +156,13 @@ static get config () {
   never hand-built relative strings.
 - **`graphqlEndpoint` must be unique** across all engines (each maps to its own path + port in
   `server/index.js`, [§8](#8-wiring-into-serverindexjs)).
-- **Keep `config` a pure declaration — never put logic in the getter.** Resolve the redis connection
-  in the **`env` layer**: `env.redisOptions` returns `{ host, port }` on staging / live and `null` in
-  dev (no Redis), so the getter just references it. Dev then falls back to `LocalPubSub`; staging /
-  live opt in via environment. Do **not** branch inside `config` (`env.REDIS_HOST ? { … } : null`) —
-  a getter must return a value, not compute one.
+- **Keep `config` a pure declaration, and keep `env` out of the engine file.** Resolve the redis
+  connection in the **`env` layer**: `env.redisOptions` returns `{ host, port }` on staging / live
+  and `null` in dev (no Redis). The Share reads it and hands it to the broker
+  ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)), because the Share is the
+  only class that imports `env`. Dev then falls back to `LocalPubSub`; staging / live opt in via
+  environment. Do **not** branch on env inside `config` (`env.REDIS_HOST ? { ... } : null`), because
+  a getter returns a value and computes none.
 
 ## 3. `Share` and `Context` — the DI the engine hands to every resolver
 
@@ -177,6 +189,44 @@ threads them into every resolver call.
   concern; this skill only wires them onto the engine. (See the `contexts/` classes such as
   `AdminGraphqlContext.js` /
   `AdminGraphqlShare.js`.)
+
+### The Share hands the broker its Redis options
+
+The subscription broker reads `redisOptions` from the config it is created with. The Share reads
+`env` once in `.createAsync()` and overrides `.createBroker()` to pass that value along, so the
+engine's `config` never touches `env`.
+
+```js
+// Good: the Share reads env once and hands the broker its Redis options
+/** @override */
+static async createAsync ({
+  config,
+}) {
+  const env = this.generateEnv()
+  const broker = this.createBroker({
+    config,
+    env,
+  })
+
+  return this.create({
+    env,
+    broker,
+  })
+}
+
+/** @override */
+static createBroker ({
+  config,
+  env,
+}) {
+  return this.Broker.create({
+    config: {
+      ...config,
+      redisOptions: env.redisOptions,
+    },
+  })
+}
+```
 
 ## 4. Authentication: `schemasToSkipFiltering` + `generateFilterHandler`
 
@@ -260,7 +310,7 @@ Each role is served by **two** engines on **two ports**:
   (`return async () => {}`, `schemasToSkipFiltering: []`). It exists so the frontend can develop
   against canned data. **Auth-off is acceptable only because a stub serves fake data on a separate
   port** — never ship a stub engine's config on a real endpoint.
-- **Subscriptions PubSub**: when `config.redisOptions` is set, progress/subscription events go through
+- **Subscriptions PubSub**: when the Share hands the broker `redisOptions` ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)), progress/subscription events go through
   **Redis PubSub** (required when a separate process — e.g. the job daemon — publishes to
   subscribers, see `hor-renchan-job-bullmq` §4). When it is `null`, the
   engine uses an in-process `LocalPubSub` — fine for dev and single-process endpoints. Enable Redis on
@@ -347,7 +397,7 @@ An endpoint → port layout looks like this (roles, paths, and ports are illustr
 
 - [ ] One engine per endpoint, extending the **app base** ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)); no duplicated middleware / error hash unless the endpoint truly differs.
 - [ ] The engine is **declaration + wiring only** — no DB queries, no response building, no per-request state in the engine.
-- [ ] `config` has a **unique `graphqlEndpoint`**, `rootPath.to(...)` paths for schema / resolvers, and `redisOptions` from `env` (or `null`) ([§2](#2-static-get-config--the-endpoints-routing-declaration)).
+- [ ] `config` has a **unique `graphqlEndpoint`**, `rootPath.to(...)` paths for schema / resolvers, and no `env` import; the Share supplies `redisOptions` from `env` (or `null`) ([§2](#2-static-get-config--the-endpoints-routing-declaration)).
 - [ ] `static get Share` / `static get Context` name **this role's own** Share + Context ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
 - [ ] `schemasToSkipFiltering` lists **only genuinely public** operations; the filter runs the four-step visa gate; **no real work** in the filter ([§4](#4-authentication-schemastoskipfiltering--generatefilterhandler)).
 - [ ] A **stub** engine (if added) points `actualResolversPath` at the stub dir and uses a **noop** filter — and never leaks that config onto a real endpoint ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)).
