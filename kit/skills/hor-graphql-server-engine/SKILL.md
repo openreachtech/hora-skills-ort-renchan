@@ -228,6 +228,155 @@ static createBroker ({
 }
 ```
 
+### What the engine, the Share and `env` may each hold
+
+Each rule below carries its reason. Together they keep every value in a class of its own, where a
+test can reach it.
+
+- **The engine is a source of configuration and handlers; it generates nothing itself.** It keeps
+  `#share`, and other classes read what they need from the engine and generate their own values.
+  The engine has no logic method of its own for producing a value: no `.get:allowedOrigins` that
+  parses a string. *Reason*: a value built inside the engine can be tested only by booting the
+  engine, while a value class tests on its own.
+- **A getter calls no method**: no `.create()` and no parse call inside a getter. *Reason*: a reader
+  takes a getter for a stored value, so a call inside it hides work that reruns on every access.
+  `.get:config` keeps its `rootPath.to()` paths as [§2](#2-static-get-config--the-endpoints-routing-declaration)
+  shows them.
+- **`Share` is the only class that imports `env`.** Every other class reads env through the Share
+  (`this.share.env`, or the engine's `#get:env`), or reads a value the Share built from it.
+  *Reason*: a test replaces env in one place, by handing the Share a mock env.
+- **`Share` is a ValueObject**: it shares created instances and holds no logic. Its static
+  factories (`.create()`, `.createAsync()`) only create instances through other classes' factory
+  methods, where a factory method wraps `new` for its own class (`AllowedCorsOriginCollection.create()`).
+  *Reason*: the Share is built once at boot and read by every resolver, so logic there runs where
+  no unit test reaches it. The rest of the Share's shape belongs to `hor-resolver-share`.
+- **A method name states what it returns, and a value class is a singular noun.** A `create~`
+  method returns an instance of a class and reads "create + singular noun":
+  `createAllowedCorsOriginCollection()`. The class is `AllowedCorsOriginCollection`, never
+  `AllowedOrigins`. *Reason*: the verb tells the caller what comes back without opening the method.
+
+| Verb | Returns | Example |
+| --- | --- | --- |
+| `create~` | an instance of a class | `.createAllowedCorsOriginCollection()` |
+| `generate~` | a primitive value it makes | `#generateCacheKey()` |
+| `build~` | a temporary object | `#buildCorsOptions()` |
+| `extract~` | data pulled from a property | `#extractOrigins()` |
+
+The table governs the names the app writes. Names the framework defines and the app inherits,
+such as `.generateEnv()` and `#generateFilterHandler()`, stay as they are.
+
+#### Example: the allowed CORS origins
+
+```js
+// Good: a value class owns the parse
+// server/tools/AllowedCorsOriginCollection.js
+export default class AllowedCorsOriginCollection {
+  constructor ({
+    originsString,
+  }) {
+    this.originsString = originsString
+  }
+
+  static create ({
+    originsString,
+  }) {
+    return new this({
+      originsString,
+    })
+  }
+
+  extractOrigins () {
+    if (!this.originsString) {
+      return []
+    }
+
+    return this.originsString
+      .split(',')
+      .map(it => it.trim())
+      .filter(it => it.length > 0)
+  }
+}
+```
+
+```js
+// Good: the Share reads env and creates the collection through its factory method
+/** @override */
+static async createAsync ({
+  config,
+}) {
+  const env = this.generateEnv()
+  const broker = this.createBroker({
+    config,
+    env,
+  })
+  const allowedCorsOriginCollection = this.createAllowedCorsOriginCollection({
+    env,
+  })
+
+  return this.create({
+    env,
+    broker,
+    allowedCorsOriginCollection,
+  })
+}
+
+static createAllowedCorsOriginCollection ({
+  env,
+}) {
+  return AllowedCorsOriginCollection.create({
+    originsString: env.CORS_CUSTOMER_ORIGINS,
+  })
+}
+```
+
+```js
+// Good: the engine reads the collection from its Share
+/** @override */
+collectMiddleware () {
+  return [
+    cors({
+      origin: this.share.allowedCorsOriginCollection.extractOrigins(),
+    }),
+    // ...the rest as in §6
+  ]
+}
+```
+
+```js
+// Bad: the engine imports env and parses it inside a static getter
+import { env } from '../../app/globals/_.js'
+import AllowedOriginsParser from '../tools/AllowedOriginsParser.js'
+
+static get allowedOrigins () {
+  return AllowedOriginsParser.create({
+    originsString: env.CORS_CUSTOMER_ORIGINS,
+  })
+    .parseOrigins()
+}
+```
+
+```js
+// Bad: the Share runs the parse, and a create~ method returns an array
+static createAllowedOrigins ({
+  env,
+}) {
+  return AllowedOriginsParser.create({
+    originsString: env.CORS_CUSTOMER_ORIGINS,
+  })
+    .parseOrigins()
+}
+```
+
+Do not guard the parse with `originsString instanceof String`. A string read from env is a
+primitive and never an instance of `String`, so that guard drops every origin.
+
+```js
+// Bad: always true for a string primitive, so extractOrigins() returns [] for every value
+if (!(this.originsString instanceof String)) {
+  return []
+}
+```
+
 ## 4. Authentication: `schemasToSkipFiltering` + `generateFilterHandler`
 
 Every operation on the endpoint runs through the engine's **filter handler** before its resolver —
@@ -338,7 +487,9 @@ The remaining overrides are cross-cutting endpoint policy:
 /** @override */
 collectMiddleware () {
   return [
-    cors({ origin: '*' }),
+    cors({
+      origin: this.share.allowedCorsOriginCollection.extractOrigins(), // see §3
+    }),
     express.json({ limit: '30mb' }), // this endpoint accepts large uploads
     express.static(this.config.staticPath),
     graphqlUploadExpressWithResolvingContentType({ maxFileSize: 10000000, maxFiles: 10 }),
@@ -399,6 +550,8 @@ An endpoint → port layout looks like this (roles, paths, and ports are illustr
 - [ ] The engine is **declaration + wiring only** — no DB queries, no response building, no per-request state in the engine.
 - [ ] `config` has a **unique `graphqlEndpoint`**, `rootPath.to(...)` paths for schema / resolvers, and no `env` import; the Share supplies `redisOptions` from `env` (or `null`) ([§2](#2-static-get-config--the-endpoints-routing-declaration)).
 - [ ] `static get Share` / `static get Context` name **this role's own** Share + Context ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
+- [ ] The engine generates no value of its own, and no getter calls a method; values come from classes the Share creates ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
+- [ ] Only the Share imports `env`; the Share holds created instances and runs no logic, and each `create~` method returns an instance of a singular-noun class ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
 - [ ] `schemasToSkipFiltering` lists **only genuinely public** operations; the filter runs the four-step visa gate; **no real work** in the filter ([§4](#4-authentication-schemastoskipfiltering--generatefilterhandler)).
 - [ ] A **stub** engine (if added) points `actualResolversPath` at the stub dir and uses a **noop** filter — and never leaks that config onto a real endpoint ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)).
 - [ ] Redis PubSub enabled on endpoints whose subscriptions are published by **another process** ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)).
