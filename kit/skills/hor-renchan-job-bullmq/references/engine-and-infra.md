@@ -15,9 +15,9 @@ export default class ContentGenerationJobEngine extends BaseJobEngine {
     return {
       workersPath: rootPath.to('app/jobs'),      // Daemon scans here for BaseJobWorker subclasses
       schedulersPath: rootPath.to('app/jobs'),   // scheduler registration scans here
-      redisConfig: RedisConnection
-      .create()
-      .generateConnectionOptions(),
+      redisConfig: ContentGenerationJobShare
+        .createRedisConnection()
+        .generateConnectionOptions(),
     }
   }
 
@@ -53,6 +53,21 @@ Created once per process by the engine; holds `processClerk`, `env`, `timber`, a
 the `subscriptionBroker`. The getter just returns the stored instance — no side effects. Enqueue-only
 processes construct the Share with `subscriptionBroker: null`.
 
+**The Share is the only class that imports `env`.** It hands the env to `RedisConnection` through
+its factory, so no other class reads `REDIS_*` directly:
+
+```js
+import RedisConnection from '../queue/RedisConnection.js'
+
+export default class ContentGenerationJobShare extends BaseJobShare {
+  static createRedisConnection () {
+    return RedisConnection.create({
+      env: this.generateRenchanEnv(),
+    })
+  }
+}
+```
+
 ## Context — per-job DI object
 
 `BaseJobContext` subclass. Created fresh for **each job execution** (`createAsync({ engine })`) and
@@ -61,8 +76,9 @@ the worker stays thin.
 
 ## RedisConnection — one Redis, two option shapes
 
-`app/queue/RedisConnection.js` reads `REDIS_HOST` /
-`REDIS_PORT` / `REDIS_PASSWORD` and produces:
+`app/queue/RedisConnection.js` does not import `env`. The Share creates it with
+`ContentGenerationJobShare.createRedisConnection()`, handing it the env, and it reads
+`env.REDIS_HOST` / `env.REDIS_PORT` / `env.REDIS_PASSWORD` to produce:
 
 - **`generateConnectionOptions()`** — for BullMQ queues/workers. **Must include
   `maxRetriesPerRequest: null`** (BullMQ requirement).
