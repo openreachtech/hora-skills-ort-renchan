@@ -160,8 +160,8 @@ static get config () {
   and `null` in dev (no Redis). The Share reads it and hands it to the broker
   ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)), because the Share is the
   only class that imports `env`. Dev then falls back to `LocalPubSub`; staging / live opt in via
-  environment. Do **not** branch on env inside `config` (`env.REDIS_HOST ? { ... } : null`), because
-  a getter returns a value and computes none.
+  environment. Do **not** branch on env inside `config` (`env.REDIS_HOST ? { ... } : null`): a
+  config holds no logic, because no test can reach logic there.
 
 ## 3. `Share` and `Context` — the DI the engine hands to every resolver
 
@@ -229,16 +229,11 @@ static createBroker ({
 
 ### What the engine, the Share and `env` may each hold
 
-Each rule below carries its reason. Together they keep every value in a class of its own, where a
-test can reach it.
-
 - **The engine is a source of configuration and handlers; it generates nothing itself.** It keeps
   `#share`, and other classes read what they need from the engine and generate their own values.
   The engine has no logic method of its own for producing a value: no `.get:allowedOrigins` that
-  parses a string. *Reason*: a value built inside the engine can be tested only by booting the
-  engine, while a value class tests on its own.
-- **A getter calls no method**: no `.create()` and no parse call inside a getter. *Reason*: a reader
-  takes a getter for a stored value, so a call inside it hides work that reruns on every access.
+  parses a string.
+- **A getter calls no method**: no `.create()` and no parse call inside a getter.
   `.get:config` keeps its `rootPath.to()` paths as [§2](#2-static-get-config--the-endpoints-routing-declaration)
   shows them.
 - **`Share` is the only class that imports `env`.** Every other class reads env through the Share
@@ -247,12 +242,11 @@ test can reach it.
 - **`Share` is a ValueObject**: it shares created instances and holds no logic. Its static
   factories (`.create()`, `.createAsync()`) only create instances through other classes' factory
   methods, where a factory method wraps `new` for its own class (`AllowedCorsOriginCollection.create()`).
-  *Reason*: the Share is built once at boot and read by every resolver, so logic there runs where
-  no unit test reaches it. The rest of the Share's shape belongs to `hor-resolver-share`.
+  *Reason*: `Share` means "sharing created instances", so it does nothing by itself. The rest of the Share's shape belongs to `hor-resolver-share`.
 - **A method name states what it returns, and a value class is a singular noun.** A `create~`
   method returns an instance of a class and reads "create + singular noun":
   `createAllowedCorsOriginCollection()`. The class is `AllowedCorsOriginCollection`, never
-  `AllowedOrigins`. *Reason*: the verb tells the caller what comes back without opening the method.
+  `AllowedOrigins`. The verbs follow the method-name verbs of `hoc-naming`.
 
 | Verb | Returns | Example |
 | --- | --- | --- |
