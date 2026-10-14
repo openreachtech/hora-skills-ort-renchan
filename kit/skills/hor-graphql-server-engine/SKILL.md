@@ -1,12 +1,11 @@
 ---
 name: hor-graphql-server-engine
 description: >
-  Implement and wire a GraphQL server engine — a per-endpoint *GraphqlServerEngine class under
-  server/graphql/ that declares one endpoint's URL, schema path, resolver directories, Share and
-  Context DI, auth filter, middleware, scalars and error codes, then is booted in server/index.js.
-  Use whenever the user asks to add a GraphQL endpoint (a new role such as user / admin / portal),
-  pair a stub engine with an actual one, change its auth policy or public-operation allowlist, or
-  enable Redis PubSub.
+  Implement and wire a GraphQL server engine, the per-endpoint *GraphqlServerEngine class under
+  server/graphql/ that declares one endpoint's routing, Share and Context DI, auth filter,
+  middleware, scalars and error codes, and decide what the engine and its Share may hold and who
+  reads env. Use whenever the user asks to add a GraphQL endpoint (a role such as user / admin),
+  pair a stub engine with an actual one, change its auth policy, or enable Redis PubSub.
 ---
 
 # GraphQL Server Engine
