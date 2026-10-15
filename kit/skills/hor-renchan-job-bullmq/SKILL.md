@@ -88,9 +88,11 @@ Full classes, hooks, the base-app-dispatcher pattern, and the enqueue paths are 
   the one config object: `config` = `{ workersPath, schedulersPath, redisConfig }` (both paths point
   at `app/jobs`), plus `ShareCtor` / `ContextCtor`, error codes, log path. `createAsync({ subscriptionBroker })`
   injects the progress broker (§4).
-- **Share** — per-**process** DI (holds `subscriptionBroker` or `null`, `env`, `timber`, …).
+- **Share** is the per-**process** DI (holds `subscriptionBroker` or `null`, `env`, `timber`, …). It is the
+  only class that imports `env`.
 - **Context** — per-**job** DI, created for each run and passed to `executeJob`.
-- **RedisConnection** (`app/queue/RedisConnection.js`) —
+- **RedisConnection** (`app/queue/RedisConnection.js`) is created by the Share with the env
+  (`ContentGenerationJobShare.createRedisConnection()`), and gives
   `generateConnectionOptions()` for BullMQ (**`maxRetriesPerRequest: null` required**) and
   `generatePubSubOptions()` for the broker. **API and Daemon must share one Redis.**
 

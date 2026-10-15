@@ -38,13 +38,15 @@ import { SubscriptionBroker } from '@openreachtech/renchan'
 import { JobWorkersDaemon } from '@openreachtech/renchan-job-bullmq'
 import activate from '../sequelize/_.js'
 import ContentGenerationJobEngine from '../app/ContentGenerationJobEngine.js'
-import RedisConnection from '../app/queue/RedisConnection.js'
+import ContentGenerationJobShare from '../app/contexts/ContentGenerationJobShare.js'
 
 await activate() // Sequelize (workers touch the DB)
 
 const subscriptionBroker = SubscriptionBroker.create({
   config: {
-    redisOptions: RedisConnection.create().generatePubSubOptions(),
+    redisOptions: ContentGenerationJobShare
+      .createRedisConnection()
+      .generatePubSubOptions(),
   },
 })
 
