@@ -193,7 +193,8 @@ threads them into every resolver call.
 
 The subscription broker reads `redisOptions` from the config it is created with. The Share reads
 `env` once in `.createAsync()` and overrides `.createBroker()` to pass that value along, so the
-engine's `config` never touches `env`.
+engine's `config` never touches `env`. A job daemon follows the same rule by another route: its
+Share creates a `RedisConnection` (see `/hor-renchan-job-bullmq`).
 
 ```js
 // Good: the Share reads env once and hands the broker its Redis options
