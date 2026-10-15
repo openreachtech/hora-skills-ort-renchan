@@ -74,16 +74,17 @@ and overrides only what is endpoint-specific.**
 | Base | Where | Role |
 | --- | --- | --- |
 | `BaseGraphqlServerEngine` | `@openreachtech/renchan` | The **framework contract**: factory (`create` / `createAsync`), `buildErrorHash`, and the abstract members every engine fills in (`config`, `Share`, `Context`, `collectMiddleware`, `generateFilterHandler`, …). |
-| `BaseAppGraphqlServerEngine` | `server/graphql/BaseAppGraphqlServerEngine.js` | **This app's shared settings** — factor here anything common to every endpoint: `ExpressMiddleware` and `standardErrorCodeHash`. |
+| `BaseAppGraphqlServerEngine` | `server/graphql/BaseAppGraphqlServerEngine.js` | **This app's shared settings** — factor here anything common to every endpoint, such as `standardErrorCodeHash`. |
 
 - **Lift a member into the app base only when its logic is the same for every endpoint, always.**
   Similar is not the same. Admin and customer declare different schemas, so
   `schemasToSkipFiltering` stays in each engine, and `visaIssuers` stays because one role may
-  tighten its login checks later. `ExpressMiddleware` and the error-code hash are the shared ones.
+  tighten its login checks later. `ExpressMiddleware` stays because each endpoint lists its own
+  CORS class. The error-code hash is the shared one.
   `generateFilterHandler()` and `collectScalars()` read the same in every engine today, but
   lifting them is a refactor of its own: a change that moves them goes in its own pull request,
   never inside one with another purpose. Each concrete engine then extends
-  `BaseAppGraphqlServerEngine` and declares the rest — `config`, `Share`, `Context`,
+  `BaseAppGraphqlServerEngine` and declares the rest — `config`, `Share`, `Context`, `ExpressMiddleware`,
   `schemasToSkipFiltering`, `visaIssuers`, `generateFilterHandler()`, `collectScalars()` and
   `collectMiddleware()`. This keeps one source of truth for the shared config (Open Reach Tech's DRY / "carve once"
   stance) and makes a new endpoint a short file.
@@ -101,9 +102,11 @@ and overrides only what is endpoint-specific.**
 import BaseAppGraphqlServerEngine from './BaseAppGraphqlServerEngine.js'
 import PartnerGraphqlShare from './contexts/PartnerGraphqlShare.js'
 import PartnerGraphqlContext from './contexts/PartnerGraphqlContext.js'
+import PartnerCorsExpressMiddleware from '../middleware/PartnerCorsExpressMiddleware.js'
 
 export default class PartnerGraphqlServerEngine extends BaseAppGraphqlServerEngine {
   /** @override */ static get config () { /* ... §2 ... */ }
+  /** @override */ static get ExpressMiddleware () { return [PartnerCorsExpressMiddleware] }
   /** @override */ get schemasToSkipFiltering () { /* ... §4 ... */ }
   /** @override */ generateFilterHandler () { /* ... §4 ... */ }
   /** @override */ get visaIssuers () { /* ... §4 ... */ }
@@ -111,7 +114,7 @@ export default class PartnerGraphqlServerEngine extends BaseAppGraphqlServerEngi
   /** @override */ static get Context () { return PartnerGraphqlContext }
   /** @override */ async collectScalars () { /* ... §6 ... */ }
   /** @override */ collectMiddleware () { /* ... §6 ... */ }
-  // ExpressMiddleware / standardErrorCodeHash inherited from the app base
+  // standardErrorCodeHash inherited from the app base
 }
 ```
 
@@ -254,14 +257,16 @@ static createBroker ({
   factories (`.create()`, `.createAsync()`) only create instances through other classes' factory
   methods, where a factory method wraps `new` for its own class (`AllowedCorsOriginCollection.create()`).
   *Reason*: `Share` means "sharing created instances", so it does nothing by itself. The rest of the Share's shape belongs to `hor-resolver-share`.
+- **`Share` keeps no instance that needs only `env`.** It already keeps `env`, so the class that
+  uses such an instance creates it from `share.env` in its own body.
 - **A method name states what it returns, and a value class is a singular noun.** A `create~`
   method returns an instance of a class and reads "create + singular noun":
-  `createAllowedCorsOriginCollection()`. The class is `AllowedCorsOriginCollection`, never
+  `#createAllowedCorsOriginCollection()`. The class is `AllowedCorsOriginCollection`, never
   `AllowedOrigins`. The verbs follow the method-name verbs of `hoc-naming`.
 
 | Verb | Returns | Example |
 | --- | --- | --- |
-| `create~` | an instance of a class | `.createAllowedCorsOriginCollection()` |
+| `create~` | an instance of a class | `#createAllowedCorsOriginCollection()` |
 | `generate~` | a primitive value it makes | `#generateCacheKey()` |
 | `build~` | a temporary object | `#buildOptionHash()` |
 | `extract~` | data pulled from a property | `#extractOrigins()` |
@@ -302,44 +307,14 @@ export default class AllowedCorsOriginCollection {
 }
 ```
 
-```js
-// Good: the Share reads env and creates the collection through its factory method
-/** @override */
-static async createAsync ({
-  config,
-}) {
-  const env = this.generateEnv()
-  const broker = this.createBroker({
-    config,
-    env,
-  })
-  const allowedCorsOriginCollection = this.createAllowedCorsOriginCollection({
-    env,
-  })
-
-  return this.create({
-    env,
-    broker,
-    allowedCorsOriginCollection,
-  })
-}
-
-static createAllowedCorsOriginCollection ({
-  env,
-}) {
-  return AllowedCorsOriginCollection.create({
-    originsString: env.CORS_CUSTOMER_ORIGINS,
-  })
-}
-```
-
-The engine does not read the collection itself. An `ExpressMiddleware` class does, through a
-getter for each hop, so no line reaches past its neighbour (the Law of Demeter).
-`BaseExpressMiddleware` holds the engine and gives `#get:share`; it ships in
-`@openreachtech/renchan` from `2.11.0`.
+The Share does not keep the collection. It already keeps `env`, and the collection needs nothing
+else, so the class that uses the collection creates it from `share.env` in its own body. That
+class is an `ExpressMiddleware`: it reads through one getter per hop, so no line reaches past
+its neighbour (the Law of Demeter). `BaseExpressMiddleware` holds the engine and gives
+`#get:share`; it ships in `@openreachtech/renchan` from `2.11.0`.
 
 ```js
-// Good: a middleware class reads the collection, one hop per getter
+// Good: the middleware creates the collection; a derived class names the env key
 // server/middleware/CorsExpressMiddleware.js
 import cors from 'cors'
 
@@ -347,13 +322,20 @@ import {
   BaseExpressMiddleware,
 } from '@openreachtech/renchan'
 
+import AllowedCorsOriginCollection from '../tools/AllowedCorsOriginCollection.js'
+
 export default class CorsExpressMiddleware extends BaseExpressMiddleware {
   static get corsClient () {
     return cors
   }
 
-  get allowedCorsOriginCollection () {
-    return this.share.allowedCorsOriginCollection
+  get env () {
+    return this.share.env
+  }
+
+  /** @abstract */
+  get originsString () {
+    throw new Error(`101.X000.001 {"memberName":"${this.constructor.name}#get:originsString"}`)
   }
 
   /** @override */
@@ -363,20 +345,53 @@ export default class CorsExpressMiddleware extends BaseExpressMiddleware {
     )
   }
 
+  createAllowedCorsOriginCollection () {
+    return AllowedCorsOriginCollection.create({
+      originsString: this.originsString,
+    })
+  }
+
   buildOptionHash () {
     return {
-      origin: this.allowedCorsOriginCollection.extractOrigins(),
+      origin: this.createAllowedCorsOriginCollection()
+        .extractOrigins(),
     }
   }
 }
 ```
 
+Each endpoint reads its own key (`CORS_ADMIN_ORIGINS`, `CORS_CUSTOMER_ORIGINS`), and renchan
+offers no structure yet that picks a key by endpoint. So each endpoint takes a derived class
+that names its key and nothing else, and the engine lists that class.
+
 ```js
-// Good: the engine only declares the class; see §6 for how it is composed
+// Good: one derived class per endpoint, holding only its env key
+// server/middleware/AdminCorsExpressMiddleware.js
+export default class AdminCorsExpressMiddleware extends CorsExpressMiddleware {
+  /** @override */
+  get originsString () {
+    return this.env.CORS_ADMIN_ORIGINS
+  }
+}
+```
+
+```js
+// Good: each engine lists its own class; see §6 for how it is composed
 static get ExpressMiddleware () {
   return [
-    CorsExpressMiddleware,
+    AdminCorsExpressMiddleware,
   ]
+}
+```
+
+```js
+// Bad: the Share keeps an instance it could leave to the class that uses it
+static createAllowedCorsOriginCollection ({
+  env,
+}) {
+  return AllowedCorsOriginCollection.create({
+    originsString: env.CORS_ADMIN_ORIGINS,
+  })
 }
 ```
 
@@ -388,6 +403,13 @@ collectMiddleware () {
       origin: this.share.allowedCorsOriginCollection.extractOrigins(),
     }),
   ]
+}
+```
+
+```js
+// Bad: the engine names the env key of a middleware it does not own
+static get corsOriginsEnvKey () {
+  return 'CORS_ADMIN_ORIGINS'
 }
 ```
 
@@ -519,7 +541,7 @@ Each role is served by **two** engines on **two ports**:
 The remaining overrides are cross-cutting endpoint policy:
 
 - **`static get ExpressMiddleware`** → the `BaseExpressMiddleware` classes this endpoint mounts
-  (`CorsExpressMiddleware`, [§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
+  (its own `CorsExpressMiddleware` derived class, [§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
   `#composeExpressMiddleware()` creates each one with the engine and returns what its
   `#composeMiddleware()` builds.
 - **`collectMiddleware()`** → the Express middleware array: what `#composeExpressMiddleware()`
@@ -611,7 +633,7 @@ An endpoint → port layout looks like this (roles, paths, and ports are illustr
 - [ ] `config` has a **unique `graphqlEndpoint`**, `rootPath.to(...)` paths for schema / resolvers, and no `env` import; the Share supplies `redisOptions` from `env` (or `null`) ([§2](#2-static-get-config--the-endpoints-routing-declaration)).
 - [ ] `static get Share` / `static get Context` name **this role's own** Share + Context ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
 - [ ] The engine generates no value of its own, and no getter calls a method; values come from classes the Share creates ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
-- [ ] CORS mounts through an `ExpressMiddleware` class, and `collectMiddleware()` never reaches through the Share ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
+- [ ] CORS mounts through the endpoint's own `CorsExpressMiddleware` derived class, the Share keeps no CORS collection, and `collectMiddleware()` never reaches through the Share ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
 - [ ] Only the Share imports `env`; the Share holds created instances and runs no logic, and each `create~` method returns an instance of a singular-noun class ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
 - [ ] `schemasToSkipFiltering` lists **only genuinely public** operations; the filter runs the four-step visa gate; **no real work** in the filter ([§4](#4-authentication-schemastoskipfiltering--generatefilterhandler)).
 - [ ] A **stub** engine (if added) points `actualResolversPath` at the stub dir and uses a **noop** filter — and never leaks that config onto a real endpoint ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)).
