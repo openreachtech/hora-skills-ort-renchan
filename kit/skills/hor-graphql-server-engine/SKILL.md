@@ -74,15 +74,18 @@ and overrides only what is endpoint-specific.**
 | Base | Where | Role |
 | --- | --- | --- |
 | `BaseGraphqlServerEngine` | `@openreachtech/renchan` | The **framework contract**: factory (`create` / `createAsync`), `buildErrorHash`, and the abstract members every engine fills in (`config`, `Share`, `Context`, `collectMiddleware`, `generateFilterHandler`, …). |
-| `BaseAppGraphqlServerEngine` | `server/graphql/BaseAppGraphqlServerEngine.js` | **This app's shared settings** — factor here anything common to every endpoint: `ExpressMiddleware`, `generateFilterHandler()`, `collectScalars()` and `standardErrorCodeHash`. |
+| `BaseAppGraphqlServerEngine` | `server/graphql/BaseAppGraphqlServerEngine.js` | **This app's shared settings** — factor here anything common to every endpoint: `ExpressMiddleware` and `standardErrorCodeHash`. |
 
 - **Lift a member into the app base only when its logic is the same for every endpoint, always.**
   Similar is not the same. Admin and customer declare different schemas, so
   `schemasToSkipFiltering` stays in each engine, and `visaIssuers` stays because one role may
-  tighten its login checks later. `ExpressMiddleware`, `generateFilterHandler()`,
-  `collectScalars()` and the error-code hash are the usual shared ones. Each concrete engine then
-  extends `BaseAppGraphqlServerEngine` and declares only the parts that differ per endpoint —
-  `config`, `Share`, `Context`, `schemasToSkipFiltering`, `visaIssuers` and `collectMiddleware()`. This keeps one source of truth for the shared config (Open Reach Tech's DRY / "carve once"
+  tighten its login checks later. `ExpressMiddleware` and the error-code hash are the shared ones.
+  `generateFilterHandler()` and `collectScalars()` read the same in every engine today, but
+  lifting them is a refactor of its own: a change that moves them goes in its own pull request,
+  never inside one with another purpose. Each concrete engine then extends
+  `BaseAppGraphqlServerEngine` and declares the rest — `config`, `Share`, `Context`,
+  `schemasToSkipFiltering`, `visaIssuers`, `generateFilterHandler()`, `collectScalars()` and
+  `collectMiddleware()`. This keeps one source of truth for the shared config (Open Reach Tech's DRY / "carve once"
   stance) and makes a new endpoint a short file.
 - **`collectMiddleware()` stays in each engine**, though it reads the same everywhere. Its
   `express.urlencoded` `verify` callback writes `req['rawBody']` under
@@ -102,12 +105,13 @@ import PartnerGraphqlContext from './contexts/PartnerGraphqlContext.js'
 export default class PartnerGraphqlServerEngine extends BaseAppGraphqlServerEngine {
   /** @override */ static get config () { /* ... §2 ... */ }
   /** @override */ get schemasToSkipFiltering () { /* ... §4 ... */ }
+  /** @override */ generateFilterHandler () { /* ... §4 ... */ }
   /** @override */ get visaIssuers () { /* ... §4 ... */ }
   /** @override */ static get Share () { return PartnerGraphqlShare }
   /** @override */ static get Context () { return PartnerGraphqlContext }
+  /** @override */ async collectScalars () { /* ... §6 ... */ }
   /** @override */ collectMiddleware () { /* ... §6 ... */ }
-  // ExpressMiddleware / generateFilterHandler() / collectScalars() /
-  // standardErrorCodeHash inherited from the app base
+  // ExpressMiddleware / standardErrorCodeHash inherited from the app base
 }
 ```
 
