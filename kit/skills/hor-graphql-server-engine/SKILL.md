@@ -57,9 +57,9 @@ the resolvers and the context; the engine just points at them.
   request. Anything stateful or per-request belongs in `Context` (per request) or `Share` (per
   process); anything domain-specific belongs in a resolver. An engine that starts doing work becomes
   a god object that every endpoint's behavior routes through.
-- **Extend the app base, override only what differs.** The shared middleware and error codes live in
+- **Extend the app base, override only what differs.** The shared middleware classes and error codes live in
   the app base ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)); a concrete engine should be
-  mostly `config` + `Share` + `Context` + auth policy.
+  mostly `config` + `Share` + `Context` + the public schemas and visa issuers.
 
 **Comment language**: the `js` examples in this SKILL.md use English comments (matching the framework
 files). In the **engine files you generate** (`*GraphqlServerEngine.js`), keep structural comments in
@@ -74,16 +74,21 @@ and overrides only what is endpoint-specific.**
 | Base | Where | Role |
 | --- | --- | --- |
 | `BaseGraphqlServerEngine` | `@openreachtech/renchan` | The **framework contract**: factory (`create` / `createAsync`), `buildErrorHash`, and the abstract members every engine fills in (`config`, `Share`, `Context`, `collectMiddleware`, `generateFilterHandler`, …). |
-| `BaseAppGraphqlServerEngine` | `server/graphql/BaseAppGraphqlServerEngine.js` | **This app's shared settings** — factor here anything common to every endpoint: the shared `collectMiddleware()` (the composed `ExpressMiddleware`, then json / static / upload / urlencoded) and `standardErrorCodeHash`. |
+| `BaseAppGraphqlServerEngine` | `server/graphql/BaseAppGraphqlServerEngine.js` | **This app's shared settings** — factor here anything common to every endpoint: `ExpressMiddleware`, `generateFilterHandler()`, `collectScalars()` and `standardErrorCodeHash`. |
 
-- **When a setting is the same for every endpoint, lift it into the app base.** Middleware and the
-  error-code hash are the usual ones. Each concrete engine then extends `BaseAppGraphqlServerEngine`
-  and declares only the parts that differ per endpoint — `config`, `Share`, `Context`, and the auth
-  policy. This keeps one source of truth for the shared config (Open Reach Tech's DRY / "carve once"
+- **Lift a member into the app base only when its logic is the same for every endpoint, always.**
+  Similar is not the same. Admin and customer declare different schemas, so
+  `schemasToSkipFiltering` stays in each engine, and `visaIssuers` stays because one role may
+  tighten its login checks later. `ExpressMiddleware`, `generateFilterHandler()`,
+  `collectScalars()` and the error-code hash are the usual shared ones. Each concrete engine then
+  extends `BaseAppGraphqlServerEngine` and declares only the parts that differ per endpoint —
+  `config`, `Share`, `Context`, `schemasToSkipFiltering`, `visaIssuers` and `collectMiddleware()`. This keeps one source of truth for the shared config (Open Reach Tech's DRY / "carve once"
   stance) and makes a new endpoint a short file.
-- **Only override a shared member to change it** for one endpoint — e.g. the user endpoint overrides
-  `collectMiddleware()` just to raise the body limit to `30mb` ([§6](#6-middleware-scalars-error-codes)).
-- Prefer having the app base hold the shared middleware + error codes and every engine — **stub** and
+- **`collectMiddleware()` stays in each engine**, though it reads the same everywhere. Its
+  `express.urlencoded` `verify` callback writes `req['rawBody']` under
+  `// eslint-disable-next-line no-param-reassign`, and the lint config allows that directive only in
+  the engine files ([§6](#6-middleware-scalars-error-codes)).
+- Prefer having the app base hold the shared middleware classes + error codes and every engine — **stub** and
   **actual** — extend it. If some engines still extend the framework base directly and repeat those
   members, migrate them to the app base when you next touch an engine so the shared settings live in
   one place.
@@ -97,11 +102,12 @@ import PartnerGraphqlContext from './contexts/PartnerGraphqlContext.js'
 export default class PartnerGraphqlServerEngine extends BaseAppGraphqlServerEngine {
   /** @override */ static get config () { /* ... §2 ... */ }
   /** @override */ get schemasToSkipFiltering () { /* ... §4 ... */ }
-  /** @override */ generateFilterHandler () { /* ... §4 ... */ }
+  /** @override */ get visaIssuers () { /* ... §4 ... */ }
   /** @override */ static get Share () { return PartnerGraphqlShare }
   /** @override */ static get Context () { return PartnerGraphqlContext }
-  /** @override */ async collectScalars () { /* ... §6 ... */ }
-  // collectMiddleware() / standardErrorCodeHash inherited from the app base
+  /** @override */ collectMiddleware () { /* ... §6 ... */ }
+  // ExpressMiddleware / generateFilterHandler() / collectScalars() /
+  // standardErrorCodeHash inherited from the app base
 }
 ```
 
@@ -514,8 +520,9 @@ The remaining overrides are cross-cutting endpoint policy:
   `#composeMiddleware()` builds.
 - **`collectMiddleware()`** → the Express middleware array: what `#composeExpressMiddleware()`
   returns, then `express.json({ limit })`, `express.static`, the upload middleware and
-  `express.urlencoded` capturing `rawBody`. Inherit it from the app base; only override to change a
-  limit (e.g. the user endpoint raises the body limit to `30mb` for uploads).
+  `express.urlencoded` capturing `rawBody`. Each engine declares it, since the lint exception its
+  `verify` callback needs covers only the engine files
+  ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)).
 - **`async collectScalars()`** → the custom GraphQL scalars this endpoint exposes
   (`DateTimeScalar`, `BigNumberScalar`). Return only what the schema uses.
 - **`static get standardErrorCodeHash`** → maps the framework error names (`Unauthenticated`,
@@ -526,17 +533,23 @@ The remaining overrides are cross-cutting endpoint policy:
   production and maps them to `errorHash` codes in production — do not disable error mapping in prod.
 
 ```js
-// Good: only override middleware to change a limit; otherwise inherit from the app base
+// Good: each engine declares its middleware, CORS first through ExpressMiddleware
 /** @override */
 collectMiddleware () {
   const composedExpressMiddleware = this.composeExpressMiddleware()
 
   return [
     ...composedExpressMiddleware,
-    express.json({ limit: '30mb' }), // this endpoint accepts large uploads
+    express.json({ limit: '10mb' }),
     express.static(this.config.staticPath),
     graphqlUploadExpressWithResolvingContentType({ maxFileSize: 10000000, maxFiles: 10 }),
-    express.urlencoded({ extended: true, verify: (req, res, body) => { req['rawBody'] = body.toString() } }),
+    express.urlencoded({
+      extended: true,
+      verify: (req, res, body) => {
+        // eslint-disable-next-line no-param-reassign
+        req['rawBody'] = body.toString()
+      },
+    }),
   ]
 }
 ```
@@ -589,7 +602,7 @@ An endpoint → port layout looks like this (roles, paths, and ports are illustr
 
 ## Finishing checklist
 
-- [ ] One engine per endpoint, extending the **app base** ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)); no duplicated middleware / error hash unless the endpoint truly differs.
+- [ ] One engine per endpoint, extending the **app base** ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)); a member moves to the app base only when it is always the same for every endpoint, and `collectMiddleware()` stays in each engine.
 - [ ] The engine is **declaration + wiring only** — no DB queries, no response building, no per-request state in the engine.
 - [ ] `config` has a **unique `graphqlEndpoint`**, `rootPath.to(...)` paths for schema / resolvers, and no `env` import; the Share supplies `redisOptions` from `env` (or `null`) ([§2](#2-static-get-config--the-endpoints-routing-declaration)).
 - [ ] `static get Share` / `static get Context` name **this role's own** Share + Context ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
