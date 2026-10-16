@@ -5,7 +5,7 @@ description: >
   under server/restfulapi/. Use whenever the user asks how the REST API is structured, where an
   endpoint lives, or how to add or edit one: a Renderer per HTTP method, its route and version,
   render(), the response and error hashes, the per-request context and share, the auth filter,
-  flushers, and the credential a request carries (cookie, Bearer, IAP JWT, HMAC).
+  flushers, the credential a request carries (cookie, Bearer, IAP JWT, HMAC), and an app behind IAP.
 ---
 
 # RESTful API Architecture
@@ -272,6 +272,9 @@ The adapter, the validator contract, and the error mapping are in
 - [credential-routes.md](./references/credential-routes.md) covers reading the credential from a cookie,
   a Bearer token, an IAP JWT or an HMAC signature by overriding `extractAccessToken()` on the
   context, with the CSRF and replay rules each route brings (§3)
+- [behind-iap.md](./references/behind-iap.md) covers an application behind IAP with no sign-in of its
+  own: the IAP JWT and its claims, the verifier, a context that finds the actor by `sub`, and what
+  the filter skips (§3)
 - [response-and-flusher.md](./references/response-and-flusher.md) — `RestfulApiResponse`
   (success / `createAsError`), `errorStructureHash` → `errorResponseHash`, extending the response,
   and flushers (JSON / Html / Csv / custom, `FlusherCtor`, `contentType`) (§4)
