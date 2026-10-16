@@ -41,6 +41,7 @@
 | スキル | 概要 |
 | :-- | :-- |
 | `hor-cookie-authentication` | renchan バックエンドのアクター別 Cookie 認証。認証情報とトークンのモデル、アクセストークンとローテーションするリフレッシュトークン(再利用検知つき)、HttpOnly のリフレッシュ Cookie、signIn / signUp / signOut / renewAccessToken の各リゾルバー。 |
+| `hor-oidc-sign-in` | 外部の OpenID Connect プロバイダ経由でアクターをサインインさせます。PKCE つき認可コードフロー、state と nonce、ID トークンの検証、セッションを開く前のプロバイダの subject とアクターの紐付け。 |
 
 ### 実行場所
 
