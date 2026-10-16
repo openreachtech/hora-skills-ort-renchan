@@ -162,6 +162,9 @@ Details and the directory diagram are in [queues.md](./references/queues.md).
 - **Retries & idempotency** — set `attempts` in `optionHash`; make `executeJob` idempotent (BullMQ may
   re-run). Expensive AI jobs checkpoint to `content_generations.intermediate_steps_json` and
   resume on retry.
+  `onJobFailed` fires on every failed attempt, so treat a job as finally failed only when
+  `jobModel.job.finishedOn` is a number, never by comparing `attemptsMade` with `attempts`
+  ([job-triple.md](./references/job-triple.md)).
 - **Concurrency & rate limiting** — `buildOptionHash()` forwards `concurrency` + `limiter`
   (`app/tools/ContentGenerationRateLimiter.js`).
 - **Testing** — unit-test workers/dispatchers with the `hoc-jest` skill.

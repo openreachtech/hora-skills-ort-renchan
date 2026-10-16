@@ -106,6 +106,33 @@ buildOptionHash () {
   publish progress to a subscription, override `onJobProgress` (see
   [subscriptions.md](./subscriptions.md)).
 
+### Detect a job's final failure
+
+`onJobFailed({ jobModel, error, previousStatus })` fires on **every** failed attempt, retried or not,
+so a hook that marks the work as failed (a database row, a progress event) has to tell the last
+failure from the rest. BullMQ sets `job.finishedOn` only when it will not retry the job, so
+`jobModel.job.finishedOn` being a number is the check:
+
+```js
+/** @override */
+onJobFailed ({
+  jobModel,
+  error,
+}) {
+  const isFinalFailure = typeof jobModel.job.finishedOn === 'number'
+
+  if (!isFinalFailure) {
+    return null // BullMQ retries this job
+  }
+
+  // ... mark the work as failed, publish the error event ...
+}
+```
+
+Do not compare `attemptsMade >= attempts` instead. A job that throws `UnrecoverableError`, and a job
+that fails because it stalled too many times, stop before `attempts` runs out, so that comparison
+reports them as still retrying and the failure is never recorded.
+
 ## Dispatcher — enqueue + per-queue options
 
 `BaseJobDispatcher` subclass. It needs `EngineCtor` (which Engine/Redis to use) and `ManifestCtor`.
