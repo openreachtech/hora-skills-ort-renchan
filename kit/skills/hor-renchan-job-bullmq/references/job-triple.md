@@ -214,3 +214,30 @@ await dispatcher.teardown()
   **DispatcherResponse** (`hasError()` / `errorMessage` / `hasResponse()` / `createDispatchedAt()`).
   It auto-`teardown()`s the queue connection unless `keepsConnection: true` is passed (the provider
   passes `true` to reuse the connection).
+
+### Guard against duplicate jobs with `deduplication`
+
+To keep two identical requests from enqueuing two jobs, pass the BullMQ `deduplication` job option
+through `dispatchJob`'s `optionHash`. While the job with that `id` has not completed or failed, a
+second `dispatchJob` with the same `id` adds nothing:
+
+```js
+const response = await dispatcher.dispatchJob({
+  body: {
+    sessionToken,
+  },
+  optionHash: {
+    deduplication: {
+      id: `send-report-email-${sessionToken}`,
+    },
+  },
+})
+```
+
+- Add `ttl` (milliseconds) to ignore duplicates for a fixed window instead, whatever state the job is
+  in.
+- Build the `id` from what makes two requests the same (the session token above), and keep it stable
+  across calls.
+- Prefer it over a custom `jobId`. BullMQ rejects a custom `jobId` that contains `:`, and a custom
+  `jobId` keeps blocking the same id for as long as the finished job stays in Redis (that is,
+  until `removeOnComplete` / `removeOnFail` removes it), so a retry of the work cannot be enqueued.

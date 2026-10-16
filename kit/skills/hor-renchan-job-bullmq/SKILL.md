@@ -5,7 +5,7 @@ description: >
   this skill whenever the user asks to add or edit a job under app/jobs/** — a Manifest / Worker /
   Dispatcher triple, a cron or interval (repeatable) job, enqueuing from a GraphQL/REST resolver,
   publishing progress to a GraphQL subscription, the worker daemon entry point, splitting work
-  across queues, or tuning concurrency / retries / rate limits.
+  across queues, tuning concurrency / retries / rate limits, the queue's Redis policy, or duplicate guards.
 ---
 
 # renchan-job-bullmq
@@ -165,6 +165,9 @@ Details and the directory diagram are in [queues.md](./references/queues.md).
   resume on retry.
   `onJobFailed` fires on every failed attempt, so treat a job as finally failed only when
   `jobModel.job.finishedOn` is a number, never by comparing `attemptsMade` with `attempts`
+  ([job-triple.md](./references/job-triple.md)).
+- **Duplicate guard**: to keep identical requests from enqueuing twice, pass
+  `optionHash: { deduplication: { id } }` to `dispatchJob` rather than a custom `jobId`
   ([job-triple.md](./references/job-triple.md)).
 - **Concurrency & rate limiting** — `buildOptionHash()` forwards `concurrency` + `limiter`
   (`app/tools/ContentGenerationRateLimiter.js`).
