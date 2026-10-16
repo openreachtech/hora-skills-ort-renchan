@@ -73,16 +73,20 @@ Every datetime column is **UTC** and typed `DATETIME(3)` (Sequelize `DATE(3)`, w
 `hor-sequelize-migration`), which keeps time to the **millisecond**. Timezone conversion is the
 **application layer's** responsibility, never the database's.
 
+- **On PostgreSQL** the same `DATE(3)` becomes `TIMESTAMP WITH TIME ZONE`. Sequelize ignores the
+  precision argument there, because that type already keeps microseconds, and it stores one
+  absolute instant, so the UTC and millisecond rules below hold unchanged.
 - **Why (UTC)**: a timezone is a *presentational* concern (the
   [grand principle](../SKILL.md#grand-principle-the-database-holds-canonical-normalized-truth)), so
   it does not belong in the canonical store. One unambiguous instant per row means comparisons,
   sorting, and range queries are always correct, and the data survives being served to clients in
-  any region or migrated across environments (dev SQLite / staging MySQL / live MariaDB). Mixing
-  local times in the DB makes every `ORDER BY time` and `BETWEEN` subtly wrong.
+  any region or migrated across environments (for example dev SQLite / staging MySQL / live
+  MariaDB, or any of them with PostgreSQL). Mixing local times in the DB makes every
+  `ORDER BY time` and `BETWEEN` subtly wrong.
 - **Why (ms precision)**: high-frequency writes within the same second must still order
   deterministically; second precision collapses them and makes "latest row" ambiguous.
 
 ```
 -- Good: UTC instant, millisecond precision; the app renders it in the user's timezone
-DataTypes.DATE(3)   // stored as UTC DATETIME(3)
+DataTypes.DATE(3)   // stored as UTC DATETIME(3) (PostgreSQL: TIMESTAMP WITH TIME ZONE)
 ```
