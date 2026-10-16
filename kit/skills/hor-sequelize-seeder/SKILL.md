@@ -122,12 +122,17 @@ example — are in [directory-structure.md](./references/directory-structure.md)
   always sees its parent row, and deletes don't orphan. (There are no DB FK constraints —
   `hor-sequelize-migration` — but ordering still keeps the data
   coherent and mirrors real usage.)
+- **On PostgreSQL, advance the id sequence after `bulkInsert`.** Explicit ids do not move a
+  PostgreSQL sequence (MariaDB, MySQL and SQLite do move their counter), so run
+  `setval(pg_get_serial_sequence(<table>, 'id'), MAX(id))` right after the insert, guarded by
+  `getDialect() === 'postgres'`.
 - **Async fulfillment**: when a value must be computed (e.g. hashing a password via `Encipher`),
   build the fulfilled array with `await Promise.all(seeds.map(fulfillX))` inside `up` before
   `bulkInsert`; keep the plain `seeds` array for `down`'s id list.
 
-The full skeleton, the suite example (parent → child insert / child → parent delete), and the
-async-fulfillment example (e.g. password hashing) are in [notation.md](./references/notation.md).
+The full skeleton, the suite example (parent → child insert / child → parent delete), the
+`setval` step for PostgreSQL, and the async-fulfillment example (e.g. password hashing) are in
+[notation.md](./references/notation.md).
 
 ## 3. Naming
 
@@ -264,8 +269,8 @@ the matching script directly (`npm run db:seed:dev-master`, `db:seed:dev`, or `d
   / development, `.directorykeeper`, the `db:seed:*` scripts and `db:refresh` flow, the re-export
   DRY pattern (§1)
 - [notation.md](./references/notation.md) — file skeleton, `TimestampSeedsSupplier`, `TABLE_NAME`
-  string vs object, `seeds` arrays, `bulkInsert` / `bulkDelete`, suites and insert/delete order,
-  async fulfillment, timestamps (§2, §5)
+  string vs object, `seeds` arrays, `bulkInsert` / `bulkDelete`, the PostgreSQL `setval` step,
+  suites and insert/delete order, async fulfillment, timestamps (§2, §5)
 - [naming.md](./references/naming.md) — `{timestamp}-{6-digit-seq}-{table_name}.cjs`, timestamp /
   creation-order ordering, `_suite`, release-dir naming (§3)
 - [id-numbering.md](./references/id-numbering.md) — the 10,000-wide id-block rule, the block tables,
