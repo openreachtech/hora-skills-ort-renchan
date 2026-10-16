@@ -1,12 +1,11 @@
 ---
 name: hor-multi-llm-provider
 description: >
-  Support multiple LLM providers (Anthropic Claude / OpenAI / Google Gemini) behind one
-  abstraction in a renchan backend: an abstract model processor, one provider base per vendor, one
-  concrete processor per model, and a loader that picks one by model name at runtime, with model
-  and provider metadata in the DB and env, not in code. Use whenever the user asks to add an LLM
-  model or provider, change how a model is selected, normalize provider responses, or wire
-  function calls and file upload.
+  Support multiple LLM providers (Anthropic Claude / OpenAI / Google Gemini) behind one abstraction in
+  a renchan backend: a provider base per vendor, a processor per model, a loader that picks one by
+  model name, and an access route per way of reaching it (vendor API key, Vertex AI service account,
+  Amazon Bedrock), with model and route metadata in the DB and env. Use whenever the user asks to add
+  an LLM model, provider or access route, or to wire function calls and file upload.
 ---
 
 # Multi-LLM Provider (Claude / OpenAI / Gemini behind one abstraction)
@@ -15,6 +14,10 @@ This backend talks to three LLM vendors through **one processor abstraction** so
 resolvers, jobs) never branch on the provider. A caller resolves a **model name** to a processor and calls
 `processor.sendRequestToAi(...)`; everything provider-specific (SDK calls, function-call shape, file
 upload, response parsing) is hidden behind the processor and its capsule.
+
+Which **model** answers and which **access route** carries the request are two separate choices. The
+model is a vendor's model (Claude Sonnet, Gemini Flash). The route is how the request reaches it and how
+it authenticates: the vendor's own API with an API key, or a cloud platform that hosts the model.
 
 ## Grand principle: one base + one subclass per model; provider differences live in a provider base, the model is chosen from the DB
 
@@ -38,6 +41,11 @@ string at runtime.
 - **Why choose the model from the DB**: which model an agent uses is per-agent config
   (`AiAgentDefaultModel → AiModel.name`), overridable per call — never hard-coded. Swapping a model is a
   data change.
+- **Why the access route is separate from the model**: one model is often reachable several ways, and each
+  way differs in the client, the credentials, and the vendor model id (the same Claude model has a
+  different id on the vendor's API than on a cloud platform). Putting the route in the provider base or
+  the concrete processor would need one class per model per route. A route class owns the client and the
+  authentication instead, and the model's DB rows say which routes reach it.
 
 ## Layers and files
 
@@ -60,6 +68,15 @@ app/tools/
     OpenAiMessagePayloadGenerator.js
     GeminiMessagePayloadGenerator.js
   AiModelResponse.js                          normalized response wrapper
+  BaseAiAccessRoute.js                        abstract contract (provider, route name, client, auth)
+  AiAccessRoute/
+    ClaudeDirectAiAccessRoute.js              concrete: Claude through the vendor API key
+    GeminiDirectAiAccessRoute.js              concrete: Gemini through the vendor API key
+    OpenAiDirectAiAccessRoute.js              concrete: OpenAI through the vendor API key
+    ClaudeVertexAiAccessRoute.js              concrete: Claude on Vertex AI, service account
+    GeminiVertexAiAccessRoute.js              concrete: Gemini on Vertex AI, service account
+    ClaudeBedrockAiAccessRoute.js             concrete: Claude on Amazon Bedrock, AWS credentials
+  BulkAiAccessRoutesLoader.js                 auto-discovery + getRoute({ aiProviderId, accessRouteName })
 app/claudeClient/ | app/geminiClient/ | app/openAiClient/   low-level Launcher/Payload/Capsule/Client
 ```
 
@@ -73,8 +90,11 @@ Abstract members a concrete processor must satisfy:
 - `#prepareAttachedFiles({ fileUrls })` (concrete default: returns `fileUrls` unchanged) — overridden per
   provider to upload files and attach provider file ids/uris.
 - `#findAiModelByName({ aiModelName })` (concrete) —
-  `AiModel.findOne({ where: { name }, include: [AiModelCapability] })`; this is how a processor gets its
-  DB-backed `targetModelName` and `maxOutputToken`.
+  `AiModel.findOne({ where: { name }, include: [AiModelCapability, AiModelAccessRoute] })`; this is how a
+  processor gets its DB-backed `maxOutputToken` and its routes.
+- `#findAccessRoute({ aiModel })` (concrete), picks the model's default active `AiModelAccessRoute` row and
+  returns `{ accessRoute, targetModelName }`: the route instance from the loader and the vendor model id
+  on that route (see section 4).
 
 The request param bag is uniform across providers:
 
@@ -135,6 +155,13 @@ export default class ClaudeSonnet4_5AiModelProcessor extends BaseClaudeAIProcess
       aiModelName: this.aiModel,
     })
 
+    const {
+      accessRoute,
+      targetModelName,
+    } = await this.findAccessRoute({
+      aiModel,
+    })
+
     const documentInstructionComposer = await this.createDocumentInstructionComposer({
       // ...splits documents, wires the agent's default instruction (see `hor-ai-prompt-document-store` skill)
     })
@@ -146,6 +173,7 @@ export default class ClaudeSonnet4_5AiModelProcessor extends BaseClaudeAIProcess
     const payloadGenerator = this.createClaudeMessagePayloadGenerator({
       aiAgent,
       aiModel,
+      targetModelName,
       message: documentInstructionComposer.generateComposedInstruction(),
       fileUrls: preparedFileUrls,
       historyMessages,
@@ -154,7 +182,9 @@ export default class ClaudeSonnet4_5AiModelProcessor extends BaseClaudeAIProcess
     })
 
     const payload = payloadGenerator.generateClaudeMessagePayload()
-    const fetcher = this.createSendMessageToClaudeFetcher()
+    const fetcher = this.createSendMessageToClaudeFetcher({
+      client: accessRoute.createClient(),
+    })
     const capsule = await fetcher.launchRequest(payload)
 
     if (capsule.hasError()) {
@@ -191,8 +221,8 @@ export default class ClaudeSonnet4_5AiModelProcessor extends BaseClaudeAIProcess
 ```
 
 - **`targetModelName` and `maxOutputToken` come from the DB row**, not the class. `#get:aiModel` returns
-  the app-facing name (`AI_MODEL.*.NAME`); the DB row's `targetModelName` is the vendor API model id
-  (e.g. `'claude-sonnet-4-5-20250929'`).
+  the app-facing name (`AI_MODEL.*.NAME`); `targetModelName` is the vendor model id on the chosen access
+  route (e.g. `'claude-sonnet-4-5-20250929'` on the vendor API, see section 4).
 - **`isAutoHandleFunctionCall: false`** short-circuits after the first response and returns the raw
   function call — this is exactly what the forced-single-tool actions in the **`hor-ai-agent-structure` skill**
   rely on.
@@ -240,7 +270,96 @@ or directly via the agent's default-model chain
 > Do not confuse this with `BulkAiToolProcessorsLoader`: the provider bases use a *tool*-processor loader
 > (`getProcessor(toolName)`) to run function calls — a different loader over `app/aiTools/`.
 
-## 4. Adding a model or a provider
+## 4. Access routes
+
+An access route is a class under `app/tools/AiAccessRoute/`, one per provider and route pair. It holds
+the two things that change with the route and nothing else: the low-level client and the credentials
+that client authenticates with. Prompting, payload shaping, function-call handling and response
+parsing stay in the provider base, so they are written once per vendor and never per route.
+
+`BaseAiAccessRoute` contract:
+
+- `#get:aiProviderId` (abstract), the `AI_PROVIDER.*.ID` this route serves. A route never changes the
+  provider: Claude reached through a cloud platform is still the Anthropic provider.
+- `#get:accessRouteName` (abstract), the `AI_ACCESS_ROUTE.*.NAME` the loader matches on.
+- `#get:supportsFileUpload` (abstract), whether `#prepareAttachedFiles()` may upload through this route.
+- `#createClient()` (abstract), returns the client the Fetcher already calls
+  (`this.client.sendMessageToClaude({ ...p })`), built from env, never from a literal. For the vendor API
+  this is the construction `Base<Provider>ApiRequestLauncher` did when it read the key itself; that read
+  moves here.
+- `#createHttpRequestClient()` (concrete), the HTTP client the vendor-API clients wrap.
+
+```js
+import environment from '../../globals/env.js'
+import ClaudeApiClient from '../../claudeClient/ClaudeApiClient.js'
+import BaseAiAccessRoute from '../BaseAiAccessRoute.js'
+
+import CONSTANT_HASH from '../../../constants/aiConstants.cjs'
+
+const {
+  AI_PROVIDER,
+  AI_ACCESS_ROUTE,
+} = CONSTANT_HASH
+
+export default class ClaudeDirectAiAccessRoute extends BaseAiAccessRoute {
+  static create () {
+    return new this()
+  }
+
+  get aiProviderId () {
+    return AI_PROVIDER.ANTHROPIC.ID
+  }
+
+  get accessRouteName () {
+    return AI_ACCESS_ROUTE.DIRECT.NAME
+  }
+
+  get supportsFileUpload () {
+    return true
+  }
+
+  createClient () {
+    return ClaudeApiClient.create({
+      token: environment.CLAUDE_API_TOKEN,
+      httpRequestClient: this.createHttpRequestClient(),
+    })
+  }
+}
+```
+
+**Choosing the route is a data lookup, like choosing the model.** A model's reachable routes are
+`AiModelAccessRoute` rows (see section 6). The processor resolves the route after it resolves the model:
+
+```js
+const aiModel = await this.findAiModelByName({
+  aiModelName: this.aiModel,
+})
+
+const {
+  accessRoute,
+  targetModelName,
+} = await this.findAccessRoute({
+  aiModel,
+})
+
+const fetcher = this.createSendMessageToClaudeFetcher({
+  client: accessRoute.createClient(),
+})
+```
+
+- **The vendor model id comes from the route row**, not from `AiModel.targetModelName`: the payload
+  generator receives `targetModelName` from `#findAccessRoute()`. A model with no route row falls back to the
+  `direct` route and `AiModel.targetModelName`, so models that exist before routes keep working.
+- **A route that cannot upload files** (`supportsFileUpload` is `false`) makes `#prepareAttachedFiles()`
+  return the files unchanged, so the provider id/uri stays unset and the payload generator takes its
+  non-upload source (see `provider-internals.md`).
+- **Callers still never see the route.** `#sendRequestToAi()` and `AiModelResponse` are identical for
+  every route, because each route's client returns the same response shape the provider capsule parses.
+
+See [access-routes.md](./references/access-routes.md) for the loader, the route rows, and what each
+route needs.
+
+## 5. Adding a model, a provider, or a route
 
 - **New model of an existing provider**: add one file under `app/tools/AiModelProcessor/` extending that
   provider base, with `#get:aiModel` returning the new `AI_MODEL.*.NAME`; add the `AiModel` +
@@ -249,31 +368,48 @@ or directly via the agent's default-model chain
 - **New provider**: add a provider base under `app/tools/BaseAiModelProviderProcessor/` implementing the
   function-call handling + `#prepareAttachedFiles()` for that vendor, a payload generator under
   `AiPayloadGenerator/`, a capsule that exposes the standard method surface, the low-level
-  Launcher/Payload/Capsule/Client under `app/<provider>Client/`, and an `AI_PROVIDER` entry. Then per-model
-  processors as above.
+  Launcher/Payload/Capsule/Client under `app/<provider>Client/`, and an `AI_PROVIDER` entry. Then a
+  `direct` access route for it and per-model processors as above.
+- **New route for an existing provider**: add one file under `app/tools/AiAccessRoute/` extending
+  `BaseAiAccessRoute`, an `AI_ACCESS_ROUTE` entry, the env vars it reads, and one `AiModelAccessRoute` row
+  per model that route reaches. No processor or caller changes.
 
 See [provider-internals.md](./references/provider-internals.md) for the per-vendor function-call and
 file-upload differences, the payload generators, `AiModelResponse`, and the low-level client pattern.
 
-## 5. Config and secrets
+## 6. Config and secrets
 
 - **`AiProvider`** (`ai_providers`): `name`. `AI_PROVIDER = { ANTHROPIC {ID:1}, GOOGLE {ID:2}, OPENAI {ID:3} }`.
-- **`AiModel`** (`ai_models`): `AiProviderId`, `name` (app key), `targetModelName` (vendor id), `isDefault`,
-  `isActive`, `displayOrder`.
+- **`AiModel`** (`ai_models`): `AiProviderId`, `name` (app key), `targetModelName` (vendor id on the `direct`
+  route), `isDefault`, `isActive`, `displayOrder`.
 - **`AiModelCapability`** (`ai_model_capabilities`): `contextWindowToken`, `maxOutputToken` (→ payload
   `maxTokens`).
+- **`AiModelAccessRoute`** (`ai_model_access_routes`): `AiModelId`, `accessRouteName` (an
+  `AI_ACCESS_ROUTE.*.NAME`), `targetModelName` (the vendor id on that route), `isDefault`, `isActive`.
 - **`AiModelToolAssignment`** (`ai_model_tool_assignments`): which tools a model may use (see the
   `hor-ai-prompt-document-store` skill for `AiTool`).
 - **API keys / base URLs** come from `@openreachtech/renchan-env` via `app/globals/env.js` (e.g.
   `CLAUDE_API_TOKEN`, `CLAUDE_API_BASE_URL`, and the analogous OpenAI/Gemini vars) — never hard-code a key.
+  Only the route that uses a credential reads it, so each route's env vars are listed in
+  [access-routes.md](./references/access-routes.md).
+- **Vertex AI uses a service account, not a key**: Application Default Credentials supply it, and only the
+  project id and location come from env. Keep a service-account key file out of the repository and the DB.
+- **Bedrock uses AWS credentials**: the AWS default credential chain supplies them (prefer a role attached to
+  the runtime), and only the region comes from env. Never set `AWS_BEARER_TOKEN_BEDROCK` where IAM
+  credentials should sign.
 
-Model/provider constants live in `constants/aiConstants.cjs` (see the **`hor-constant-definition` skill** for the
+`AI_ACCESS_ROUTE` names the routes: `DIRECT { NAME: 'direct' }`, `VERTEX_AI { NAME: 'vertex-ai' }` and
+`BEDROCK { NAME: 'bedrock' }`.
+
+Model/provider/route constants live in `constants/aiConstants.cjs` (see the **`hor-constant-definition` skill** for the
 two-file `.cjs` master + ESM bridge rule).
 
 ## Cross-cutting rules
 
 - **Callers never branch on the provider** — resolve a processor by name and use the uniform
   `#sendRequestToAi()` / `AiModelResponse` surface.
+- **A route owns the client and the credentials, and a processor never reads a key.** Reading a
+  credential outside the route that uses it spreads one secret across several classes.
 - **A concrete model processor adds no logic beyond `#get:aiModel`** — put shared behavior on the provider
   base, per-vendor behavior on the provider base too, and model specifics in the DB.
 - **Return `null` / a normalized error response, not `undefined`**, on failure; check `#hasError()` before
@@ -282,7 +418,9 @@ two-file `.cjs` master + ESM bridge rule).
 
 ## Detail files
 
+- [access-routes.md](./references/access-routes.md), the route contract in full, `BulkAiAccessRoutesLoader`,
+  the `AiModelAccessRoute` rows, and the env vars and authentication each route needs.
 - [provider-internals.md](./references/provider-internals.md) — the three provider bases' function-call
   feedback shapes and file-upload models (Claude/OpenAI/Gemini), the payload generators
   (tools/toolChoice/history trimming/file source), the `AiModelResponse` + capsule method surface, and the
-  low-level Launcher/Payload/Capsule/Client pattern with where API keys are read.
+  low-level Launcher/Payload/Capsule/Client pattern and the SDK clients the routes wrap.
