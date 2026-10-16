@@ -88,7 +88,7 @@ ContentGenerationJobId: {
 ## A set of ids you don't want as FKs → a JSON array
 
 When you want to hold a set of ids but not enough to warrant individual FK columns or a join table,
-hold them in a `JSON`-typed array column. Same idea as having no FK constraint: check referential
+hold them in a `JSON`-typed array column (`JSONB` on PostgreSQL). Same idea as having no FK constraint: check referential
 integrity in the app layer.
 
 ```js

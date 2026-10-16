@@ -132,8 +132,8 @@ module.exports = {
 - **Each column** is declared with a camelCase key + `field: COLUMN_NAME.X` (the snake physical
   name). **Always** declare `allowNull`, and add `defaultValue` when the column has a default. The
   type is `Sequelize.X` (`BIGINT` / `INTEGER` / `STRING(n)` / `TEXT` (long items: `TEXT('medium')`) /
-  `DATE(3)` / `BOOLEAN` / `JSON` / `DECIMAL(p,s)` / `BLOB('long')`). Avoid `ENUM`; use a domain
-  constant + `STRING(n)`.
+  `DATE(3)` / `BOOLEAN` / `JSON` (`JSONB` on PostgreSQL) / `DECIMAL(p,s)` / `BLOB('long')`). Avoid
+  `ENUM`; use a domain constant + `STRING(n)`.
   Datetimes default to `DATE(3)`. Keep `allowNull` / `defaultValue` in sync with the same-named
   column on the model side.
 

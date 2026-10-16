@@ -26,6 +26,13 @@ on PostgreSQL.
   and directly violates the
   [grand principle](../SKILL.md#grand-principle-the-database-holds-canonical-normalized-truth).
   Normalize relational facts into tables; reserve `JSON` for the genuinely schemaless.
+- **On PostgreSQL, default a JSON column to `JSONB`.** PostgreSQL's `json` type has no equality
+  operator, so `DISTINCT`, `GROUP BY`, `UNION` and `=` over a table that holds one fail with
+  `could not identify an equality operator for type json`. `jsonb` has the operator and can carry a
+  GIN index; it does not keep key order or whitespace, which a schemaless blob never needs. Only
+  PostgreSQL declares `JSONB` in Sequelize, so MariaDB, MySQL and SQLite keep `JSON`. Files that
+  run on PostgreSQL and on another dialect choose with
+  `queryInterface.sequelize.getDialect() === 'postgres'`.
 - **Why URL as `TEXT`**: URLs (signed storage links, tracking-laden redirects) routinely exceed any
   `STRING(n)` you would guess, and a too-short limit truncates silently and corrupts the reference.
   `TEXT` removes the guess.
