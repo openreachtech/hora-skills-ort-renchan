@@ -93,10 +93,10 @@ one transaction → format**. It receives `{ variables: { input }, context }`; `
 ```js
 /**
  * @param {{
- *   variables: { input: server.graphql.user.UpdateArticleInput }
+ *   variables: { input: graphql.user.UpdateArticleInput }
  *   context: UserGraphqlContext
  * }} params
- * @returns {Promise<server.graphql.user.UpdateArticleResult>}
+ * @returns {Promise<graphql.user.UpdateArticleResult>}
  */
 async resolve ({
   variables: {
