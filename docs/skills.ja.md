@@ -71,7 +71,7 @@
 
 | スキル | 概要 |
 | :-- | :-- |
-| `hor-type-interface` | `.d.ts` で型インターフェースを定義します。`types/models/` のモデルインターフェース(global `model`)と、`types/resolvers/<category>/` のリゾルバ Input/Result 型。 |
+| `hor-type-interface` | `.d.ts` で型インターフェースを定義します。`types/models/` のモデルインターフェース(global `model`)と、`types/graphql.d.ts` のリゾルバ Input/Result 型(global `graphql.<category>`)。 |
 | `hor-constant-definition` | アプリ定数は必ず 2 ファイルで定義します。`constants/` の CommonJS マスター(単一の情報源)と、それを再 export する `app/constants/` の ESM ブリッジ。 |
 
 ### 設計パターン

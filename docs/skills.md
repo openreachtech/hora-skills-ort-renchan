@@ -71,7 +71,7 @@ Each skill lives at `kit/skills/<name>/`, directly under the skills directory, a
 
 | Skill | Summary |
 | :-- | :-- |
-| `hor-type-interface` | Define `.d.ts` type interfaces — model interfaces under `types/models/` (global `model`) and resolver Input/Result types under `types/resolvers/<category>/`. |
+| `hor-type-interface` | Define `.d.ts` type interfaces, with model interfaces under `types/models/` (global `model`) and resolver Input/Result types in `types/graphql.d.ts` (global `graphql.<category>`). |
 | `hor-constant-definition` | Define an application constant as two files: a CommonJS master under `constants/` (the source of truth) plus an ESM bridge under `app/constants/` that re-exports it. |
 
 ### Design patterns
