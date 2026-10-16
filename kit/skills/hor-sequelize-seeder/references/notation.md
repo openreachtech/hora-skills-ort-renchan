@@ -108,7 +108,7 @@ module.exports = {
     if (queryInterface.sequelize.getDialect() === 'postgres') {
       await queryInterface.sequelize.query(`
         SELECT setval(
-          pg_get_serial_sequence('${TABLE_NAME}', 'id'),
+          pg_get_serial_sequence('${queryInterface.quoteIdentifier(TABLE_NAME)}', 'id'),
           (SELECT MAX(id) FROM ${queryInterface.quoteIdentifier(TABLE_NAME)})
         )
       `)
@@ -123,7 +123,29 @@ module.exports = {
 
 - **`MAX(id)` of the whole table, not of `seeds`**, so a table that already holds a larger id is not
   moved backwards. The next generated id is `MAX(id) + 1`.
-- **A suite repeats the statement once per table**, right after that table's `bulkInsert`.
+- **The sequence name is passed as quoted identifier text** (`'"Table"'`), so a mixed-case table name
+  resolves the same way as it does in the `MAX(id)` subquery.
+- **A suite repeats the statement once per table**, right after that table's `bulkInsert`. Its
+  `TABLE_NAME` is an object of table names, so each table passes its own entry:
+
+  ```js
+  const TABLE_NAME = {
+    customer: 'Customers',
+    order: 'Orders',
+  }
+
+  const tableNames = Object.values(TABLE_NAME)
+
+  await Promise.all(
+    tableNames.map(tableName =>
+      queryInterface.sequelize.query(`
+        SELECT setval(
+          pg_get_serial_sequence('${queryInterface.quoteIdentifier(tableName)}', 'id'),
+          (SELECT MAX(id) FROM ${queryInterface.quoteIdentifier(tableName)})
+        )
+      `)),
+  )
+  ```
 - **`down` does nothing to the sequence.** Deleted ids are simply skipped; no id is reused.
 - **The guard keeps one file valid on every database.** A project that runs only on PostgreSQL may
   drop the `if`; the dialects without sequences must not run the statement.
