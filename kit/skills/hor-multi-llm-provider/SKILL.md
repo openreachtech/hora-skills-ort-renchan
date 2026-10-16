@@ -155,6 +155,13 @@ export default class ClaudeSonnet4_5AiModelProcessor extends BaseClaudeAIProcess
       aiModelName: this.aiModel,
     })
 
+    const {
+      accessRoute,
+      targetModelName,
+    } = await this.findAccessRoute({
+      aiModel,
+    })
+
     const documentInstructionComposer = await this.createDocumentInstructionComposer({
       // ...splits documents, wires the agent's default instruction (see `hor-ai-prompt-document-store` skill)
     })
@@ -166,6 +173,7 @@ export default class ClaudeSonnet4_5AiModelProcessor extends BaseClaudeAIProcess
     const payloadGenerator = this.createClaudeMessagePayloadGenerator({
       aiAgent,
       aiModel,
+      targetModelName,
       message: documentInstructionComposer.generateComposedInstruction(),
       fileUrls: preparedFileUrls,
       historyMessages,
@@ -174,7 +182,9 @@ export default class ClaudeSonnet4_5AiModelProcessor extends BaseClaudeAIProcess
     })
 
     const payload = payloadGenerator.generateClaudeMessagePayload()
-    const fetcher = this.createSendMessageToClaudeFetcher()
+    const fetcher = this.createSendMessageToClaudeFetcher({
+      client: accessRoute.createClient(),
+    })
     const capsule = await fetcher.launchRequest(payload)
 
     if (capsule.hasError()) {
