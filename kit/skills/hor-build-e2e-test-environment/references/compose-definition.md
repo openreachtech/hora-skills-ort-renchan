@@ -91,7 +91,7 @@ room for the developer's own stack beside it:
 | Role (example component) | `mem_limit` | Heap flag (≈ half) | Note |
 | --- | --- | --- | --- |
 | system of record (MariaDB) | `768m` | — (buffer pool, not a heap) | cap the InnoDB buffer pool below this in `command:` if the default is generous |
-| cache and job queue (Redis) | `256m` | `--maxmemory 192mb` | set `--maxmemory` under the cap so Redis evicts instead of being OOM-killed |
+| cache and job queue (Redis) | `256m` | `--maxmemory 192mb` | set `--maxmemory` under the cap so Redis rejects writes instead of being OOM-killed |
 | event transport (Kafka) | `1g` | `-Xmx512m` | JVM: cap is ~2× heap |
 | change propagation (Kafka Connect) | `768m` | `-Xmx384m` | JVM: cap is ~2× heap |
 | read model (Elasticsearch) | `1g` | `-Xms512m -Xmx512m` | JVM: cap is ~2× heap; the heaviest single service |
@@ -191,8 +191,8 @@ services:
   redis:
     image: redis:7-alpine
     mem_limit: 256m       # hard container cap (§ Memory)
-    # --maxmemory sits under the cap so Redis evicts rather than being OOM-killed at the cap
-    command: ['redis-server', '--save', '', '--appendonly', 'no', '--maxmemory', '192mb', '--maxmemory-policy', 'allkeys-lru']
+    # --maxmemory sits under the cap so Redis rejects writes rather than being OOM-killed at the cap
+    command: ['redis-server', '--save', '', '--appendonly', 'no', '--maxmemory', '192mb', '--maxmemory-policy', 'noeviction']
     ports: ['127.0.0.1:16379:6379']
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
@@ -206,10 +206,14 @@ services:
   means a worker waking up to process a job whose context has moved on. **General rule:** the roles
   that must survive a restart are the ones holding authored state; the queue is not one of them, so
   turn its durability off rather than reasoning about stale jobs later.
-- **`--maxmemory` set below the `mem_limit`, with an eviction policy.** Reach the `mem_limit` and the
-  container is OOM-killed outright; reach `--maxmemory` first and the cache evicts a key instead — a
-  graceful degradation rather than a dead service. Keep `--maxmemory` a margin under the cap so the
-  cache stays inside the container ceiling (§ Memory).
+- **`--maxmemory` set below the `mem_limit`, with `noeviction`.** Reach the `mem_limit` and the
+  container is OOM-killed outright; reach `--maxmemory` first and Redis rejects writes with an error
+  instead, a failure the application can report rather than a dead service. Keep `--maxmemory` a
+  margin under the cap so Redis stays inside the container ceiling (§ Memory).
+- **`noeviction`, never an evicting policy such as `allkeys-lru`.** A job queue keeps each job's
+  state in several keys, and the queue library breaks when Redis drops one of them. **General rule:**
+  a Redis that holds a queue evicts nothing, so size `--maxmemory` for the queue instead of leaning
+  on eviction to stay under it.
 
 ### Event transport — example: Kafka in single-node mode
 
