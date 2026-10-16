@@ -76,6 +76,7 @@ app/tools/
     OpenAiDirectAiAccessRoute.js              concrete: OpenAI through the vendor API key
     ClaudeVertexAiAccessRoute.js              concrete: Claude on Vertex AI, service account
     GeminiVertexAiAccessRoute.js              concrete: Gemini on Vertex AI, service account
+    ClaudeBedrockAiAccessRoute.js             concrete: Claude on Amazon Bedrock, AWS credentials
   BulkAiAccessRoutesLoader.js                 auto-discovery + getRoute({ aiProviderId, accessRouteName })
 app/claudeClient/ | app/geminiClient/ | app/openAiClient/   low-level Launcher/Payload/Capsule/Client
 ```
@@ -370,8 +371,8 @@ file-upload differences, the payload generators, `AiModelResponse`, and the low-
 ## 6. Config and secrets
 
 - **`AiProvider`** (`ai_providers`): `name`. `AI_PROVIDER = { ANTHROPIC {ID:1}, GOOGLE {ID:2}, OPENAI {ID:3} }`.
-- **`AiModel`** (`ai_models`): `AiProviderId`, `name` (app key), `targetModelName` (vendor id), `isDefault`,
-  `isActive`, `displayOrder`.
+- **`AiModel`** (`ai_models`): `AiProviderId`, `name` (app key), `targetModelName` (vendor id on the `direct`
+  route), `isDefault`, `isActive`, `displayOrder`.
 - **`AiModelCapability`** (`ai_model_capabilities`): `contextWindowToken`, `maxOutputToken` (→ payload
   `maxTokens`).
 - **`AiModelAccessRoute`** (`ai_model_access_routes`): `AiModelId`, `accessRouteName` (an
@@ -384,8 +385,12 @@ file-upload differences, the payload generators, `AiModelResponse`, and the low-
   [access-routes.md](./references/access-routes.md).
 - **Vertex AI uses a service account, not a key**: Application Default Credentials supply it, and only the
   project id and location come from env. Keep a service-account key file out of the repository and the DB.
+- **Bedrock uses AWS credentials**: the AWS default credential chain supplies them (prefer a role attached to
+  the runtime), and only the region comes from env. Never set `AWS_BEARER_TOKEN_BEDROCK` where IAM
+  credentials should sign.
 
-`AI_ACCESS_ROUTE = { DIRECT { NAME: 'direct' }, VERTEX_AI { NAME: 'vertex-ai' } }` names the routes.
+`AI_ACCESS_ROUTE` names the routes: `DIRECT { NAME: 'direct' }`, `VERTEX_AI { NAME: 'vertex-ai' }` and
+`BEDROCK { NAME: 'bedrock' }`.
 
 Model/provider/route constants live in `constants/aiConstants.cjs` (see the **`hor-constant-definition` skill** for the
 two-file `.cjs` master + ESM bridge rule).

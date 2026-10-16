@@ -28,6 +28,8 @@ a different `targetModelName` on each route:
 | `AiModel.name` | `accessRouteName` | `targetModelName` shape | `isDefault` |
 | --- | --- | --- | --- |
 | `sonnet-4-5` | `direct` | `claude-sonnet-4-5-20250929` | true |
+| `sonnet-4-5` | `vertex-ai` | `claude-sonnet-4-5@20250929` | false |
+| `sonnet-4-5` | `bedrock` | `anthropic.claude-sonnet-4-5-20250929-v1:0` | false |
 
 Swapping the route for a model is a data change: flip `isDefault` between its rows. Disabling a route is
 `isActive: false`. A model with no rows uses `direct` and `AiModel.targetModelName`.
@@ -141,3 +143,83 @@ new GoogleGenAI({
   (`GeminiSdkApiClient`) that maps the existing `contents` payload onto the SDK's request. The function-call
   shape (`functionCall` / `functionResponse`) does not change.
 - Add the two env vars, `AI_ACCESS_ROUTE.VERTEX_AI`, and one `AiModelAccessRoute` row per reachable model.
+
+## The Bedrock route (AWS credentials)
+
+Claude hosted on Amazon Bedrock, reached with **AWS credentials** (SigV4 signing), not the vendor key.
+
+| Provider | Route class | Client |
+| --- | --- | --- |
+| Anthropic | `ClaudeBedrockAiAccessRoute` | `AnthropicBedrock` from `@anthropic-ai/bedrock-sdk` |
+
+```js
+import {
+  AnthropicBedrock,
+} from '@anthropic-ai/bedrock-sdk'
+
+import environment from '../../globals/env.js'
+import ClaudeSdkApiClient from '../../claudeClient/ClaudeSdkApiClient.js'
+import BaseAiAccessRoute from './BaseAiAccessRoute.js'
+
+import CONSTANT_HASH from '../../../constants/aiConstants.cjs'
+
+const {
+  AI_PROVIDER,
+  AI_ACCESS_ROUTE,
+} = CONSTANT_HASH
+
+export default class ClaudeBedrockAiAccessRoute extends BaseAiAccessRoute {
+  static create () {
+    return new this()
+  }
+
+  get aiProviderId () {
+    return AI_PROVIDER.ANTHROPIC.ID
+  }
+
+  get accessRouteName () {
+    return AI_ACCESS_ROUTE.BEDROCK.NAME
+  }
+
+  get supportsFileUpload () {
+    return false
+  }
+
+  createClient () {
+    return ClaudeSdkApiClient.create({
+      sdkClient: new AnthropicBedrock({
+        awsRegion: environment.BEDROCK_AWS_REGION,
+      }),
+    })
+  }
+}
+```
+
+- **Authentication is the AWS default credential chain.** Pass no key options and the client signs with
+  whatever the chain finds: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (and `AWS_SESSION_TOKEN`) in the
+  process, a shared profile or SSO login, or the role attached to the runtime (ECS task, EC2 instance
+  profile). On a server, prefer the attached role so no secret exists. Where the keys must come through
+  `env.js` under app-level names, pass all three as `awsAccessKey`, `awsSecretKey` and `awsSessionToken`;
+  pass both or neither of the first two.
+- **Never set `AWS_BEARER_TOKEN_BEDROCK` in a process that should sign with IAM credentials.** The client
+  reads it by default and sends it as a bearer token instead of signing, so the IAM role is silently
+  ignored.
+- **Pass the region explicitly** (`BEDROCK_AWS_REGION`, an app-level name). When neither `awsRegion` nor
+  `AWS_REGION` is set, the client falls back to `us-east-1`, which may not be where the model is enabled.
+- **Grant only the invoke actions**: `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream`,
+  scoped to the model or inference-profile ARNs the app uses.
+- **The Claude payload is unchanged.** Like `AnthropicVertex`, `AnthropicBedrock` takes the same Messages
+  params, moves `model` into the request path (`/model/{model}/invoke`, or
+  `invoke-with-response-stream` when streaming), and sets `anthropic_version` when the body lacks it. It
+  also copies the `anthropic-beta` header into the body, so the `files-api` beta has no use here. The same
+  `ClaudeSdkApiClient` and `SendMessageToClaudeCapsule` serve this route and the Vertex AI route.
+- **`targetModelName` takes the Bedrock spelling**, in the shape `anthropic.claude-sonnet-4-5-20250929-v1:0`.
+  A model that Bedrock serves only through a cross-region inference profile takes the profile id, which
+  prefixes a geography (for example `us.anthropic.claude-...`). Seed the id the Bedrock console lists for
+  the region, and confirm the AWS account may invoke that model there.
+- **`supportsFileUpload` is `false`**, for the same reason as on Vertex AI: the SDK rewrites only the
+  message paths.
+- **This route serves Claude only**, because `@anthropic-ai/bedrock-sdk` serves Claude models. Another
+  vendor's model on Bedrock is a new provider base with its own client, not a route of an existing one.
+- Add `BEDROCK_AWS_REGION`, `AI_ACCESS_ROUTE.BEDROCK`, and one `AiModelAccessRoute` row per Claude model
+  the account can invoke.
