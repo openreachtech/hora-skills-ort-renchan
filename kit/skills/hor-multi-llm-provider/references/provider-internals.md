@@ -138,7 +138,8 @@ UploadFile) a **Payload** (request builder; `#create({ params })`, `#toActualPar
 (extends `Base<Provider>ApiRequestLauncher` → `BaseRequestLauncher` from
 `@openreachtech/renchan-tools-external-api`; `#launchRequest()` / `#launchStreamRequest()`, defines
 `#get:CapsuleClass` and `#requestToClient()`), and a **Capsule** (normalizes the response). Plus one shared
-**ApiClient** and one shared **Base...RequestLauncher** that reads the vendor key/base URL from env.
+**ApiClient** and one shared **Base...RequestLauncher**. The launcher receives its client from the
+access route (see `access-routes.md`) and reads no credential itself.
 
 - `SendMessageToClaudeFetcher#get:CapsuleClass` → `SendMessageToClaudeCapsule`;
   `#requestToClient(p)` → `this.client.sendMessageToClaude({ ...p })`.
@@ -146,8 +147,13 @@ UploadFile) a **Payload** (request builder; `#create({ params })`, `#toActualPar
   with `x-api-key`, `anthropic-version`, `anthropic-beta: files-api-2025-04-14`; `#uploadFileToClaude()`
   POSTs `/files` as FormData; streaming uses the official SDK
   (`import Anthropic from '@anthropic-ai/sdk'` → `client.beta.messages.stream(...)`).
-- `Base<Provider>ApiRequestLauncher` reads `environment.CLAUDE_API_TOKEN` / `environment.CLAUDE_API_BASE_URL`
-  (and the OpenAI/Gemini analogues) from the renchan-env facade.
+- `Base<Provider>ApiRequestLauncher` takes the `client` the processor passes in
+  (`accessRoute.createClient()`). The `direct` route builds `ClaudeApiClient` from
+  `environment.CLAUDE_API_TOKEN` / `environment.CLAUDE_API_BASE_URL` (and the OpenAI/Gemini analogues) of
+  the renchan-env facade.
+- `ClaudeSdkApiClient` (and `GeminiSdkApiClient`) wrap a platform SDK client for the Vertex AI and Bedrock
+  routes. They expose the method the Fetcher calls (`#sendMessageToClaude()`), so the Fetcher, the Payload
+  and the Capsule stay the same on every route.
 
 This Launcher/Payload/Capsule/Client shape is the same external-API-client pattern the **external-api-client
 skill** describes; here it is specialized per LLM vendor.
