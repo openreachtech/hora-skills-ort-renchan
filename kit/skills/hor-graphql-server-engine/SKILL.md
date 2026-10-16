@@ -5,7 +5,8 @@ description: >
   server/graphql/ that declares one endpoint's routing, Share and Context DI, auth filter,
   middleware, scalars and error codes, and decide what the engine and its Share may hold and who
   reads env. Use whenever the user asks to add a GraphQL endpoint (a role such as user / admin),
-  pair a stub engine with an actual one, change its auth policy, or enable Redis PubSub.
+  pair a stub engine with an actual one, change its auth policy or credential route, or enable Redis
+  PubSub.
 ---
 
 # GraphQL Server Engine
@@ -198,9 +199,46 @@ threads them into every resolver call.
 - **Each endpoint pairs its own Share + Context** (`Admin*` with `Admin*`); do not share one role's
   Context with another endpoint — the principal and permissions differ.
 - The Share / Context implementations themselves (findUser, visa issuing, extra clients) are their own
-  concern; this skill only wires them onto the engine. (See the `contexts/` classes such as
-  `AdminGraphqlContext.js` /
+  concern; this skill only wires them onto the engine, and says below where the Context reads the
+  credential. (See the `contexts/` classes such as `AdminGraphqlContext.js` /
   `AdminGraphqlShare.js`.)
+
+### The Context reads the credential from one route
+
+The Context reads the `x-renchan-access-token` header unless a derived class says otherwise. A cookie,
+a Bearer token, an IAP JWT or an HMAC signature replaces it by overriding
+`static extractAccessToken()`. The engine, the filter and the visa stay as they are, because the
+filter reads what `findUser()` resolved and never where the credential came from.
+
+```js
+// Good: the GraphQL signature takes requestParams as well as expressRequest
+/** @override */
+static extractAccessToken ({
+  expressRequest,
+  requestParams,
+}) {
+  const headers = expressRequest.headers
+    ?? this.extractHeadersFromRequestParams({
+      requestParams,
+    })
+
+  return AccessCredentialReader.readBearerToken({
+    headers,
+  })
+}
+```
+
+- **Keep the base's fallback.** The base reads `expressRequest.headers` and falls back to the headers in
+  the connection payload (`extractHeadersFromRequestParams()`) when the request has none. An override
+  that reads `expressRequest.headers` alone drops that fallback, and a request that relies on it
+  arrives with no credential.
+- **One override serves every read.** `context.accessToken` calls `extractAccessToken()` again, so no
+  second place needs the change.
+- **A context reads exactly one route.** The readers, `findUser()` for each route, and the CSRF and
+  replay rules are in `/hor-restfulapi-architecture` (its `credential-routes` reference), which
+  describes the REST context; the GraphQL context differs only in the signature above. An HMAC route
+  needs the raw bytes, and `collectMiddleware()` captures `rawBody` on `express.urlencoded` only, so
+  the engine's `express.json` takes the same `verify` callback ([§6](#6-middleware-scalars-error-codes)).
 
 ### The Share hands the broker its Redis options
 
