@@ -132,8 +132,10 @@ A renderer with `get passesFilter () { return true }` skips this entirely (publi
 ## Context (per request)
 
 `AppRestfulApiContext extends BaseRestfulApiContext`. The framework builds it **per request**:
-it extracts the access token from the header (`x-renchan-access-token`), calls `findUser`, and
-builds the visa from the engine's `visaIssuers`.
+it extracts the access token with `extractAccessToken()` (by default from the
+`x-renchan-access-token` header), calls `findUser`, and builds the visa from the engine's
+`visaIssuers`. A cookie, a Bearer token, an IAP JWT or an HMAC signature replaces the header by
+overriding `extractAccessToken()` ([credential-routes.md](./credential-routes.md)).
 
 ```js
 import {
