@@ -201,6 +201,15 @@ builds the output object. Never return a raw model instance.
 - **Money / decimal fields → strings.** Emit a decimal (money, rate) via `BigNumber(value).toFixed(2)`
   (compute into a named `const` first), matching the `String!` SDL money type (`hor-graphql-schema`) —
   never a raw JS number.
+- **PostgreSQL `BIGINT` ids → `Number()`.** node-postgres returns a `BIGINT` (int8) column as a
+  string (`'100001'`), where MariaDB, MySQL and SQLite return a number. Convert each such value in
+  `formatResponse()` before it goes into an SDL `Int` field (`userId: Number(user.id)`), so the
+  response carries a number and a later `===` against an `Int` input holds (`'100001' === 100001`
+  is `false`). `Number()` changes nothing on the other databases, so write it unconditionally.
+  - **Never wrap a nullable value directly**, because `Number(null)` is `0`:
+    `customerId: order.CustomerId === null ? null : Number(order.CustomerId)`.
+  - A GraphQL `Int` is 32 bits. A column whose values can pass 2147483647 takes the `BigNumber`
+    scalar (`/hor-graphql-schema`), not `Number()`.
 - Echo pagination for lists.
 
 ### Deep values via FieldPathValueExtractor
