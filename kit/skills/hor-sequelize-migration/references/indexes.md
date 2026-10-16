@@ -158,6 +158,14 @@ If it fits within ~50 characters, do not shorten. `.join('_')` the full `TABLE_N
 as in `customers_registered_at_index`. **Do not mechanically initialize just because you can** (it
 hurts readability).
 
+## A UNIQUE index compares with the column's collation
+
+A UNIQUE index rejects what the column's collation calls equal. On MariaDB and MySQL with a `_ci`
+collation, `Taro` and `taro` are duplicates, and the second insert fails. PostgreSQL compares
+case-sensitively by default, so both rows fit and a case-insensitive natural key (an email, a login
+name) is not enforced. On PostgreSQL, normalize the value to lower case before it is saved, or
+index `lower(<column>)`, instead of relying on the collation.
+
 ## A UNIQUE named index is "the real constraint"
 
 The uniqueness of a 1:1 relation's FK or a natural key is **actually enforced by this UNIQUE named

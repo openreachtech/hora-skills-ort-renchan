@@ -141,6 +141,12 @@ buildWhereClause ({
 
 - Import `Op` from `sequelize`. Use `[Op.like]` for prefix search (`` `${keyword}%` ``), `[Op.or]`
   for multi-column keyword match, `[Op.in]` with a subquery for a related-table filter.
+- **`[Op.like]` is as case-sensitive as the database's collation.** On MariaDB and MySQL the usual
+  `_ci` collations make it case-insensitive (and accent-insensitive), and SQLite matches ASCII
+  letters without regard to case. PostgreSQL is case-sensitive, so `name LIKE 'tar%'` misses `Taro`
+  there. On PostgreSQL write `[Op.iLike]` for a case-insensitive prefix match; it emits `ILIKE`,
+  which MariaDB, MySQL and SQLite do not have, so a project that runs on both picks the operator by
+  `sequelize.getDialect()`.
 - Import `ValueInspector` from `@openreachtech/mentsu-value-inspector`;
   `ValueInspector.create({ value: keyword }).isPresent()` guards `null` / `undefined` before
   `keyword.trim()`. The package has no string/blank inspector (presence + number / integer / date
