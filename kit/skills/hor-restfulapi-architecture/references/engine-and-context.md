@@ -149,15 +149,17 @@ export default class AppRestfulApiContext extends BaseRestfulApiContext {
    * @override
    * @param {{
    *   expressRequest: ExpressType.Request
+   *   engine?: RestfulApiType.ServerEngine
    *   accessToken: string | null
-   *   now?: Date
+   *   requestedAt?: Date
    * }} params
    * @returns {Promise<renchan.UserEntity | null>}
    */
   static async findUser ({
     expressRequest,
+    engine,
     accessToken,
-    now = new Date(),
+    requestedAt = new Date(),
   }) {
     // look up the token → return the user entity, or null
   }
