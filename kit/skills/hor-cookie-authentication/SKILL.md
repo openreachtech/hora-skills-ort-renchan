@@ -1,6 +1,6 @@
 ---
 name: hor-cookie-authentication
-description: "Cookie-based authentication for a renchan backend, per actor: the credential and token models (password hash, access + rotating refresh tokens with reuse detection), the refresh-token HttpOnly cookie, the signIn / signUp / signOut / renewAccessToken resolvers, and the engine's public-operation policy. Use when adding cookie auth to an actor/role. Boundary: models, migrations and seeders follow their own conventions; this replaces the older access-token-only flow."
+description: "Password sign-in with cookie-based sessions for a renchan backend, per actor: the credential and token models (password hash, access + rotating refresh tokens with reuse detection), the refresh-token HttpOnly cookie, the signIn / signUp / signOut / renewAccessToken resolvers, and the engine's public-operation policy. Use when adding password auth to an actor/role. Boundary: external identity provider sign-in and other credential routes have their own conventions."
 metadata:
   author: OpenReachTech
   version: "2026.08.18"
@@ -8,9 +8,11 @@ metadata:
 
 # Cookie Authentication (Backend)
 
-Use this skill when adding cookie-based authentication to a renchan backend — storing an actor's credential and tokens, the sign-in / sign-out / renew operations, the refresh-token cookie, and deciding which operations are public.
+Use this skill when adding **password sign-in** with cookie-based sessions to a renchan backend: storing an actor's credential and tokens, the sign-in / sign-out / renew operations, the refresh-token cookie, and deciding which operations are public.
 
 An authenticated actor (a role such as `user`, `customer`, `admin`, or `tenant`) keeps its password as a hash and authenticates with two tokens: a short-lived **access token** the client sends as a header, and a long-lived **refresh token** kept in the DB and handed to the browser as an **HttpOnly cookie**. `signIn` issues both; `renewAccessToken` reads the cookie, rotates the refresh token (detecting reuse of a retired one), and returns a fresh access token; `signOut` revokes the series and clears the cookie. Only `renewAccessToken` and `signOut` authenticate by the cookie — every other operation authenticates by the access-token header.
+
+This skill covers the password route only. An actor who signs in at an external OpenID Connect provider follows `/hor-oidc-sign-in`, which ends where this skill's session begins and reuses it unchanged. A request that carries its credential in a cookie, a Bearer header, an IAP JWT or an HMAC signature instead of `x-renchan-access-token`, and an application behind IAP that has no sign-in of its own, are in `/hor-restfulapi-architecture`.
 
 You build this **per actor**, on top of the boilerplate's base classes — it is not shipped in the boilerplate; each app builds it for the actors its spec declares. Design the actor entity and its profile first with [[hor-database-design]] / [[hor-sequelize-model]]; this skill adds the credential, tokens, operations, and cookie to it. It says what the auth cluster contains and how the pieces fit — writing each piece follows its own convention ([[hor-sequelize-model]], [[hor-sequelize-seeder]], [[hor-mutation-resolver]], [[hor-type-interface]]), and the engine is [[hor-graphql-server-engine]].
 
