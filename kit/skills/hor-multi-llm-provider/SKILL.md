@@ -74,6 +74,8 @@ app/tools/
     ClaudeDirectAiAccessRoute.js              concrete: Claude through the vendor API key
     GeminiDirectAiAccessRoute.js              concrete: Gemini through the vendor API key
     OpenAiDirectAiAccessRoute.js              concrete: OpenAI through the vendor API key
+    ClaudeVertexAiAccessRoute.js              concrete: Claude on Vertex AI, service account
+    GeminiVertexAiAccessRoute.js              concrete: Gemini on Vertex AI, service account
   BulkAiAccessRoutesLoader.js                 auto-discovery + getRoute({ aiProviderId, accessRouteName })
 app/claudeClient/ | app/geminiClient/ | app/openAiClient/   low-level Launcher/Payload/Capsule/Client
 ```
@@ -380,8 +382,10 @@ file-upload differences, the payload generators, `AiModelResponse`, and the low-
   `CLAUDE_API_TOKEN`, `CLAUDE_API_BASE_URL`, and the analogous OpenAI/Gemini vars) — never hard-code a key.
   Only the route that uses a credential reads it, so each route's env vars are listed in
   [access-routes.md](./references/access-routes.md).
+- **Vertex AI uses a service account, not a key**: Application Default Credentials supply it, and only the
+  project id and location come from env. Keep a service-account key file out of the repository and the DB.
 
-`AI_ACCESS_ROUTE = { DIRECT { NAME: 'direct' } }` names the routes.
+`AI_ACCESS_ROUTE = { DIRECT { NAME: 'direct' }, VERTEX_AI { NAME: 'vertex-ai' } }` names the routes.
 
 Model/provider/route constants live in `constants/aiConstants.cjs` (see the **`hor-constant-definition` skill** for the
 two-file `.cjs` master + ESM bridge rule).
