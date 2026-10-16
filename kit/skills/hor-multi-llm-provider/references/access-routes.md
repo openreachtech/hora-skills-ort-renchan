@@ -105,7 +105,8 @@ export default class ClaudeVertexAiAccessRoute extends BaseAiAccessRoute {
 ```
 
 `GeminiVertexAiAccessRoute#createClient()` builds its SDK client the same way, with the option names the
-Google Gen AI SDK defines for Vertex AI:
+Google Gen AI SDK defines for Vertex AI (its documentation now recommends the `enterprise` flag over
+`vertexai` for the same switch):
 
 ```js
 import {
@@ -135,6 +136,9 @@ new GoogleGenAI({
   `ClaudeSdkApiClient#sendMessageToClaude(params)` is `sdkClient.messages.create(params)`, streaming is
   `sdkClient.beta.messages.stream(params)` as in the direct client, and `SendMessageToClaudeCapsule` parses the result as it
   does for the direct route. Do not send the `anthropic-beta: files-api-...` header on this route.
+- **An SDK client throws on a failed request.** `ClaudeSdkApiClient` must convert the thrown error into
+  whatever the capsule's `#hasError()` reads, so callers still get a normalized error response and never
+  a route-specific exception.
 - **`targetModelName` takes the Vertex spelling**, which puts the version after an `@` (for example
   `claude-sonnet-4-5@20250929`), where the direct id uses a dash. Seed it as its own
   `AiModelAccessRoute` row.
