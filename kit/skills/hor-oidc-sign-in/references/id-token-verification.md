@@ -47,6 +47,7 @@ export default class OidcIdTokenVerifier {
       issuer: this.issuer,
       audience: this.clientId,
       algorithms: ['RS256'],
+      requiredClaims: ['exp', 'iat', 'sub'],
       clockTolerance: 30,
     })
 
@@ -82,10 +83,11 @@ export default class OidcIdTokenVerifier {
 | `iss` equals the configured issuer, as a string | A token from another provider, or another tenant of the same one |
 | `aud` contains `OIDC_CLIENT_ID` | A token issued to a different application |
 | `azp` equals the client id, when `aud` holds several values | A token another client of the provider could replay here |
-| `exp` in the future, with a small tolerance | An old token |
+| `exp` present and in the future, with a small tolerance | An old token, or a token that never expires |
+| `iat` and `sub` present | A token that names no moment of issue or no subject |
 | `nonce` equals the stored nonce | A token minted for another authorization, which replays an earlier one |
 
-`jwtVerify` enforces the signature, `algorithms`, `iss`, `aud` and `exp`. The `azp` and `nonce` lines are the app's own, so `verify()` compares them whatever the library version does.
+`jwtVerify` enforces the signature, `algorithms`, `iss` and `aud`, and checks `exp` only when the token carries one, so `requiredClaims` makes a token without `exp`, `iat` or `sub` fail. The `azp` and `nonce` lines are the app's own, so `verify()` compares them whatever the library version does.
 
 - **Pin `algorithms` to what the provider lists as `id_token_signing_alg_values_supported`.** `RS256` is the default the specification sets for ID tokens, so it is the default here. A provider that signs with `ES256` or `PS256` takes that value instead, never a list that widens past the provider's own.
 - **Unknown `kid`.** `createRemoteJWKSet` refetches the key set when a token names a key it does not hold, and not more often than its cooldown allows. The provider rotates keys on its own schedule, and the app does nothing about it.
