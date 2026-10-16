@@ -56,7 +56,7 @@
 | :-- | :-- |
 | `hor-ai-agent-structure` | `mentsu-agent-loop-core` 上にアプリ側 AI エージェントを構成します。`app/agents/<name>/` に `ProceduralAgentLoop` サブクラスとステップごとの `BaseAgentAction` サブクラスを置きます。 |
 | `hor-agent-loop` | `@openreachtech/mentsu-agent-loop` の 3 パッケージで LLM エージェントループを構築します。core(反復エンジン)、BullMQ ジョブ実行、GraphQL の起動 mutation と進捗 subscription。 |
-| `hor-multi-llm-provider` | Claude / OpenAI / Gemini を 1 つの抽象の下で扱います。抽象モデルプロセッサ、ベンダーごとの基底、モデルごとの具象クラス、モデル名で選択するローダー。 |
+| `hor-multi-llm-provider` | Claude / OpenAI / Gemini を 1 つの抽象の下で扱います。抽象モデルプロセッサ、ベンダーごとの基底、モデルごとの具象クラス、モデル名で選択するローダー、モデルへの到達方法ごとのアクセスルート(ベンダー API キー、サービスアカウントによる Vertex AI、Amazon Bedrock)。 |
 | `hor-light-rag` | ベクタ DB なしで AI エージェント向けの軽量 RAG を追加します。ローカル埋め込みによる vector-first / LLM フォールバックのランキングと、MySQL の n-gram 全文検索インデックス。 |
 | `hor-ai-prompt-document-store` | エージェントの設定・指示文・ドキュメント・ツールスキーマをコードに埋め込まず DB に保持し、リクエスト時にプロンプトへ組み立て、バックアップテーブルでバージョン管理します。 |
 
