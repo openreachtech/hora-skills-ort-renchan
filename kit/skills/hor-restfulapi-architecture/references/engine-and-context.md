@@ -48,7 +48,9 @@ export default class AppRestfulApiServerEngine extends BaseRestfulApiServerEngin
 
 - **`static get config()`** — `pathPrefix` (route prefix, e.g. `/v1`), `renderersPath` (the **one**
   version directory whose renderers this engine serves), `staticPath` (static files root). To serve
-  a second version, run an engine pointed at `renderers/v2/` with `pathPrefix: '/v2'`.
+  a second version, run an engine pointed at `renderers/v2/` with `pathPrefix: '/v2'`. With
+  several RESTful API servers, each server has its own engine whose `renderersPath` is
+  `renderers/<server>/v1/`, so one server never mounts another's routes.
 - **`static get Share()` / `static get Context()`** — the app Share / Context classes (below).
 - **`static get standardErrorEnvelopHash()`** — the **cross-cutting** error envelopes, keyed by
   name, each `{ statusCode, errorMessage }`. The framework requires at least `Unknown`,
