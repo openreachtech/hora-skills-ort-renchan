@@ -107,9 +107,10 @@ of the skill apply to a stack it was not written in.
   environment, or the environment is not end-to-end. Give it the same treatment — loopback-only port
   on the E2E block, healthcheck, started by the runner.
 - **A stand-in replaces where a service lives, never what the application checks.** The identity
-  provider stub and the IAP stand-in sign with the issuer and the claims the real ones use, and
-  `.env.<stack-env>` points the application at their local key set and audience, values that reach
-  only this machine. No verification in the application is relaxed so the stack can run. Where
+  provider stub has its own local issuer, which `OIDC_ISSUER` points at, and the IAP stand-in
+  presents the real IAP issuer value, signed with keys the test environment supplies. Both use the
+  claims the real ones use, and `.env.<stack-env>` points the application at their local key set and
+  audience, values that reach only this machine. No verification in the application is relaxed so the stack can run. Where
   production sits behind IAP, the stand-in is the edge of this stack ([§5](#5-the-edge-what-the-browser-actually-connects-to)).
 - **What is universal and what is example.** These hold for any stack: one command in dependency
   order with idempotent steps; loopback-only publishing on a port block and compose project name of
