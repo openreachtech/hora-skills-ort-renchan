@@ -31,7 +31,7 @@ Declare them on the env-facade typedef and read them **through the facade**, nev
 
 ## 3. The discovery document
 
-The provider publishes its endpoints at a well-known path under the issuer. `OidcProviderConfiguration` fetches that document **once, when the Share is created**, through an external API client (`/hor-external-api-client`), and exposes `authorizationEndpoint`, `tokenEndpoint` and `jwksUri`. It checks that the document's `issuer` equals `OIDC_ISSUER` and throws otherwise: a mismatch means the app is pointed at the wrong provider, and booting is better than signing anyone in against it.
+The provider publishes its endpoints at a well-known path under the issuer. `OidcProviderConfiguration` fetches that document **once, when the Share is created**, through an external API client (`/hor-external-api-client`), and exposes `issuer`, `authorizationEndpoint`, `tokenEndpoint` and `jwksUri`. It checks that the document's `issuer` equals `OIDC_ISSUER` and throws otherwise: a mismatch means the app is pointed at the wrong provider, and booting is better than signing anyone in against it.
 
 The Share only creates what it keeps, through the other classes' factory methods:
 
