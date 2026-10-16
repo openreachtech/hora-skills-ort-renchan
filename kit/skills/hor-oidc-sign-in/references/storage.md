@@ -47,9 +47,11 @@ State reads live on the model, as they do on the refresh token, so a resolver ne
 ```js
 isAvailable ({ pointsAt }) {
   return this.get('usedAt') === null
-    && !this.isExpired({ pointsAt })
+    && this.isUnexpired({ pointsAt })
 }
 ```
+
+`isUnexpired()` reads true while `expiredAt` is still ahead of `pointsAt`, so the caller never negates a predicate.
 
 Spending the row is one update guarded on `usedAt: null` and on `expiredAt` still ahead. Zero rows updated means the row is missing, spent or expired, and the callback fails as an unusable authorization:
 

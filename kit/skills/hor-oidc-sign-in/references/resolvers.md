@@ -71,7 +71,7 @@ if (spendResult.hasError()) {
   throw new Error(spendResult.extractErrorMessage())
 }
 
-if (!spendResult.hasSpent()) {
+if (spendResult.isUnspent()) {
   stateCookieClerk.clearStateCookie()
 
   throw this.errorHash.OidcAuthorizationUnusable.create()
@@ -105,6 +105,7 @@ return {
 }
 ```
 
+- **`isUnspent()` names the purpose.** The result reads true when the guarded update touched no row, so the caller never negates a predicate.
 - **The row is spent before the exchange.** An authorization code works once at the provider, and a row that stays spendable after a failed exchange would let the same state be tried again. A failed callback means the person starts over.
 - **`verifyIdToken()`** exchanges the code at the provider's `token_endpoint`, then hands the returned `id_token` to `context.share.oidcIdTokenVerifier.verify({ idToken, nonce })`. The exchange is a form-encoded `POST` (`application/x-www-form-urlencoded`) carrying `grant_type=authorization_code`, `code`, `redirect_uri`, `client_id`, `client_secret` and the row's `code_verifier`. It goes through an external API client (`/hor-external-api-client`), so the provider's key names stay in its Payload and Capsule. Any verifier error becomes `OidcIdTokenInvalid`.
 - **`findOrLinkActor()`** looks up the identity by `(issuer, subject)`, and on a miss takes the first-link path the actor allows ([storage](./storage.md)). The write and the actor lookup for a first link share one transaction.
