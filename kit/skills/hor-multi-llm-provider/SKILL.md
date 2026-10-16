@@ -423,4 +423,4 @@ two-file `.cjs` master + ESM bridge rule).
 - [provider-internals.md](./references/provider-internals.md) — the three provider bases' function-call
   feedback shapes and file-upload models (Claude/OpenAI/Gemini), the payload generators
   (tools/toolChoice/history trimming/file source), the `AiModelResponse` + capsule method surface, and the
-  low-level Launcher/Payload/Capsule/Client pattern with where API keys are read.
+  low-level Launcher/Payload/Capsule/Client pattern and the SDK clients the routes wrap.
