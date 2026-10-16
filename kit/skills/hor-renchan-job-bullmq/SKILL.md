@@ -157,9 +157,9 @@ Details and the directory diagram are in [queues.md](./references/queues.md).
   (`{ millisecond, isImmediately }`), listed in `SchedulerService.collectScheduleInputs()` with a
   `schedulerId` matching the scheduler class. See [daemon-and-scheduler.md](./references/daemon-and-scheduler.md).
 - **Connection reuse** — `JobDispatcherProvider`
-  (`app/tools/JobDispatcherProvider.js`) caches one
-  Dispatcher per `DispatcherCtor` and dispatches with `keepsConnection: true`; the request Share
-  holds one, torn down on process exit. Prefer it over `Dispatcher.createAsync()` per request.
+  (`app/tools/JobDispatcherProvider.js`) caches one Dispatcher per `DispatcherCtor` and dispatches
+  with `keepsConnection: true`; the request Share holds one, torn down on process exit. Prefer it
+  over `Dispatcher.createAsync()` per request.
 - **Retries & idempotency** — set `attempts` in `optionHash`; make `executeJob` idempotent (BullMQ may
   re-run). Expensive AI jobs checkpoint to `content_generations.intermediate_steps_json` and
   resume on retry.
