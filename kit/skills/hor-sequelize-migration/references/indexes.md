@@ -70,8 +70,10 @@ name: [SHORT_TABLE_NAME, 'job_package', 'unique'].join('_')
 
 ## Shortening a long index name (over ~50 chars)
 
-The DB identifier limit is 64 characters. As a **safety margin, shorten once a name would run past
-~50 characters**. Shorten in stages, in the **following priority order**.
+The identifier limit is 64 characters on MariaDB and MySQL and 63 bytes on PostgreSQL, so write
+for the stricter 63. SQLite sets none. As a **safety margin, shorten once a name would run past
+~50 characters**. Index names are ASCII snake_case, so a byte is a character. Shorten in stages, in
+the **following priority order**.
 
 ### Priority 1: shorten the column name(s) first (keep the table name in full)
 
@@ -133,6 +135,22 @@ character** of each word.
 - Always put abbreviations in `SHORT_COLUMN_NAME` / `SHORT_TABLE_NAME` constants and reference them
   from the `addIndex` `name` (do not inline). If abbreviations collide within a table, add a second
   letter (etc.) to keep them unique while staying meaningful.
+
+### What the database does with a name that is too long or taken
+
+| Database | Over-long name | Same name on two tables |
+| --- | --- | --- |
+| MariaDB / MySQL | error past 64 characters | allowed, names are unique per table |
+| PostgreSQL | cut to 63 bytes with a NOTICE, no error | error `relation ... already exists`, names are unique per schema |
+| SQLite | no limit | error, names are unique per database |
+
+- **PostgreSQL's silent cut is the trap.** Two names that differ only after byte 63 become the same
+  name, and the second `addIndex` fails with `already exists` although both names looked distinct in
+  the file. Shortening to ~50 characters keeps that from happening.
+- **The `<table>_` part is what keeps names unique across tables** on PostgreSQL and SQLite. Keep
+  it in full (Priority 1 above), and when `SHORT_TABLE_NAME` is needed, check that the abbreviation
+  is unique across the whole schema, not only within the file. If abbreviations collide, add a
+  second letter.
 
 ### Shorten only when needed
 

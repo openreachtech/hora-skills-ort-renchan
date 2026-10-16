@@ -246,9 +246,10 @@ await Promise.all([
 
 ### Shortening a long index name (over ~50 chars)
 
-The DB identifier limit is 64 characters. As a safety margin, shorten once a name would run past
-**~50 characters**. Shorten in the **following priority order**, taking the **initial of each
-word**:
+The identifier limit is 64 characters on MariaDB and MySQL and 63 bytes on PostgreSQL (SQLite sets
+none). As a safety margin, shorten once a name would run past **~50 characters**; the names are
+ASCII snake_case, so a byte is a character. Shorten in the **following priority order**, taking the
+**initial of each word**:
 
 1. **First shorten the column name(s)** (`SHORT_COLUMN_NAME`), keeping the table name in full.
    e.g. `content_generations` + `cgji` (= content_generation_job_id) + `unique`
@@ -256,6 +257,12 @@ word**:
 2. **Only if it is still too long, shorten the table name too** (`SHORT_TABLE_NAME`).
    e.g. `cgrf` (= content_generation_requirement_files) + `cgji` + `index`
    → `cgrf_cgji_index`
+
+Index names are unique per table on MariaDB and MySQL, but per schema on PostgreSQL and per
+database on SQLite, so the same name on two tables is an error there. PostgreSQL also truncates a
+name past 63 bytes instead of rejecting it, so two long names that differ only at the end collide.
+Keep the `<table>_` part (or a `SHORT_TABLE_NAME` unique across the schema). See
+[indexes.md](./references/indexes.md).
 
 Initialism examples: `content_generation_job_id`→`cgji`, `chat_room_id`→`cri`,
 `customer_id`→`ci`, `content_generation_requirement_files`→`cgrf`, `content_plan_rates`→`err`.
