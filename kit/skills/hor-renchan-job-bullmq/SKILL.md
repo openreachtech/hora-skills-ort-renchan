@@ -95,6 +95,7 @@ Full classes, hooks, the base-app-dispatcher pattern, and the enqueue paths are 
   (`ContentGenerationJobShare.createRedisConnection()`), and gives
   `generateConnectionOptions()` for BullMQ (**`maxRetriesPerRequest: null` required**) and
   `generatePubSubOptions()` for the broker. **API and Daemon must share one Redis.**
+  That Redis must run with `maxmemory-policy noeviction`; an evicting policy corrupts the queues.
 
 Details and the package-exports table are in [engine-and-infra.md](./references/engine-and-infra.md).
 
