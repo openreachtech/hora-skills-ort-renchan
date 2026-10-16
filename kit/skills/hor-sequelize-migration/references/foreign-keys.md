@@ -42,6 +42,9 @@ CustomerId: {
   DB FK constraint (1) pins insert / delete order, (2) makes cloning into backup (`*_bk`) tables
   hard, and (3) cannot express circular references. Referential integrity is enforced in the **app
   layer** (model associations and domain logic).
+- **PostgreSQL gets the same rule.** The three costs belong to the constraint itself, and PostgreSQL
+  enforces a constraint as strictly as MariaDB and MySQL do, so a project on PostgreSQL writes no
+  `references` either.
 
 ## Create the FK *column*; express the relation on the model side
 
@@ -88,7 +91,7 @@ ContentGenerationJobId: {
 ## A set of ids you don't want as FKs → a JSON array
 
 When you want to hold a set of ids but not enough to warrant individual FK columns or a join table,
-hold them in a `JSON`-typed array column. Same idea as having no FK constraint: check referential
+hold them in a `JSON`-typed array column (`JSONB` on PostgreSQL). Same idea as having no FK constraint: check referential
 integrity in the app layer.
 
 ```js

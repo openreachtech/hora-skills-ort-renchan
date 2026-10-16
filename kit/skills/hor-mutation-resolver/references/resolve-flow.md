@@ -261,6 +261,10 @@ formatResponse ({
 }
 ```
 
+On PostgreSQL, wrap each `BIGINT` id in `Number()` (`articleId: Number(article.id)`): node-postgres
+returns it as a string, while the result type declares `Int`. It is a no-op on MariaDB, MySQL and
+SQLite, and a nullable id is branched first because `Number(null)` is `0`.
+
 Do not assemble a display object here. The mutation reports the write; the frontend re-queries for
 the rendered data. A `formatResponse` that maps/sorts/joins rows is a sign business logic leaked
 out of the transaction callback, or that a Query's job crept into the Mutation — pull it back. (A

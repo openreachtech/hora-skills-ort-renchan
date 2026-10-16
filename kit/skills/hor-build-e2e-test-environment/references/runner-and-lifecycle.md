@@ -100,7 +100,7 @@ just been cleaned, or may hold a full session's data. It never learns which — 
 | # | Step (role) | Example | Why here |
 | --- | --- | --- | --- |
 | 1 | verify the stack is up and healthy | the same health wait | seeding against a half-started store fails in a way that reads like a code bug. `seed.sh` **starts nothing**: if the stack is down it says to run `start.sh` |
-| 2 | create the schema, with the **same collation settings as production** | create database | a different collation changes string comparison, and the environment then behaves unlike every other one |
+| 2 | create the schema, with the **same collation settings as production** | create database (MariaDB `CHARACTER SET` / `COLLATE`, PostgreSQL `LC_COLLATE`) | a different collation changes string comparison, and the environment then behaves unlike every other one |
 | 3 | apply migrations | `sequelize-cli db:migrate` | before rows exist, and it is also what lets a long-lived environment follow the code |
 | 4 | seed the **E2E master** set | `db:seed:<stack-env>-master` | the metadata is what later steps derive from: which tables are propagated, which fields are in the read model |
 | 5 | seed the **E2E fixture** set | `db:seed:<stack-env>` | after master, because fixtures reference master ids |

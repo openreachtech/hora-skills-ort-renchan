@@ -178,9 +178,17 @@ The three standard sets, and the npm wrappers the project provides for the commo
 ## A live (real-dialect) run
 
 Everything above runs on **SQLite**, the local default. A test that depends on real-dialect behavior
-SQLite does not emulate has to run against **MariaDB**, and that means **a MariaDB running locally**;
+SQLite does not emulate has to run against **the database the project's specification names**
+(MariaDB, MySQL or PostgreSQL), and that means **that database running locally**;
 `NODE_ENV=live` selects its connection config, and the same test files run unchanged — only the
 dialect differs.
+
+- **Run against the named database, not a neighbour.** MariaDB passing says nothing about
+  PostgreSQL, because the two differ on exactly what SQLite hides: identifier quoting, index name
+  limits, `JSON` against `JSONB`, id sequences after explicit ids, `BIGINT` returned as a string,
+  and case sensitivity of `LIKE`. A project on PostgreSQL runs its live tests on PostgreSQL.
+- **Read the dialect off the specification, not off this skill.** The live connection config
+  carries it, so switching the database is a config change and the test files stay as they are.
 
 Standing that database up is deliberately **not covered here**: this skill governs where tests go and
 how they are run, not how a database is provisioned.

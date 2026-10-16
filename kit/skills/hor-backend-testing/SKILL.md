@@ -67,9 +67,10 @@ Details, the barrel example, and the per-category workflow snippet are in
   `NODE_OPTIONS="--experimental-vm-modules" NODE_ENV=development npx jest <path>` (add `--runInBand`
   for DB-writing/order-sensitive tests). It runs against the DB **as it currently is**, so prepare the
   DB once and reset it piecemeal (migrations-only / one-seeder-set) instead of a full rebuild.
-- **Live (real-dialect) run**: running against MariaDB instead of SQLite **requires a MariaDB
-  running locally**, selected with `NODE_ENV=live`. How that database is stood up is not part of this
-  convention.
+- **Live (real-dialect) run**: running against the database the project's specification names
+  (MariaDB, MySQL or PostgreSQL) instead of SQLite **requires that database running locally**,
+  selected with `NODE_ENV=live`. Test against the one the specification names, never another
+  database of the same family. How that database is stood up is not part of this convention.
 - **Parallelism × per-worker heap must fit in real memory.** Jest runs one worker per core by
   default, and `--max-old-space-size` is **not a reservation — it is how far the GC may be
   deferred**, so a value the machine cannot actually give lets every worker grow until it crashes

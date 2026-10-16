@@ -91,6 +91,43 @@ module.exports = {
 - `down` deletes exactly the rows `up` inserted, by their explicit id list
   (`{ id: seeds.map(it => it.id) }`). This is why every row needs a stable, explicit `id`.
 
+## PostgreSQL: advance the id sequence after seeding explicit ids
+
+MariaDB, MySQL and SQLite move an `AUTO_INCREMENT` counter past an explicit id on insert.
+**PostgreSQL does not**: the sequence behind a `BIGSERIAL` id stays at its start, because
+`bulkInsert` with explicit ids never calls `nextval()`. The first row the app creates then asks the
+sequence for `1`, which seeded row `1` already holds, and the insert fails with
+`duplicate key value violates unique constraint "<table>_pkey"`. Master ids `1`...`7` collide at
+once; a `100001` block collides after 100,000 inserts. Advance the sequence for every seeded table.
+
+```js
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.bulkInsert(TABLE_NAME, TimestampSeedsSupplier.supplyAll(seeds), {})
+
+    if (queryInterface.sequelize.getDialect() === 'postgres') {
+      await queryInterface.sequelize.query(`
+        SELECT setval(
+          pg_get_serial_sequence('${TABLE_NAME}', 'id'),
+          (SELECT MAX(id) FROM ${queryInterface.quoteIdentifier(TABLE_NAME)})
+        )
+      `)
+    }
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.bulkDelete(TABLE_NAME, { id: seeds.map(it => it.id) })
+  },
+}
+```
+
+- **`MAX(id)` of the whole table, not of `seeds`**, so a table that already holds a larger id is not
+  moved backwards. The next generated id is `MAX(id) + 1`.
+- **A suite repeats the statement once per table**, right after that table's `bulkInsert`.
+- **`down` does nothing to the sequence.** Deleted ids are simply skipped; no id is reused.
+- **The guard keeps one file valid on every database.** A project that runs only on PostgreSQL may
+  drop the `if`; the dialects without sequences must not run the statement.
+
 ## Suites: insert parent → child, delete child → parent
 
 When a file fills several related tables, insert **parent before child** in `up` (a child's FK

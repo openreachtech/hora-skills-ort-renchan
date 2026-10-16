@@ -220,6 +220,8 @@ entities to the schema's field names — never returns raw model instances.
 
 - Rename model columns to schema fields (`user.id` → `userId`), map arrays to their output shape, and
   **echo pagination** (`limit` / `offset` / `sort` / `totalRecords`) for lists.
+- On PostgreSQL, `BIGINT` ids arrive as strings, so wrap each one in `Number()` before it fills an
+  SDL `Int` field (a nullable one is branched first, because `Number(null)` is `0`).
 - Read deep association values with `FieldPathValueExtractor`; guard optional relations and default
   missing scalars (`?? ''` / `?? null`) rather than leaking `undefined`
   ([data-access.md](./references/data-access.md)).
