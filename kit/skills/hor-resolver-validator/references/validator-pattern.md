@@ -155,9 +155,10 @@ only declare rules:
   constructors), supplied through the factory.
 - **`generateValidationEntries()`** — abstract; the subclass returns
   `Array<[() => boolean, RenchanGraphqlErrorCtor]>`.
-- **Run entrypoint** — iterates the entries and, for the first entry whose predicate returns
-  `false`, raises that `ErrorCtor`. (Shown as `validate()` in the wiring below; use whatever the
-  actual base names it.)
+- **`validate()`** runs the entries in order and throws `ErrorCtor.create()` of the first one
+  whose predicate returns `false`.
+- **`validateInput()`** runs the same entries and returns that error instead, or `null` when every
+  rule holds.
 - Generic JSDoc `@extends {BaseInputValidator<ErrorHash, InputType>}` documents the error hash and
   input shapes for that validator.
 
@@ -218,8 +219,7 @@ async resolve ({
 
 - The error names in the validator's `ErrorHash` typedef must match keys in the resolver's
   `errorCodeHash`.
-- `create({ input, errorHash })` and the run entrypoint come from `BaseInputValidator`; align with
-  the actual base API.
+- `create({ input, errorHash })` and `validate()` come from `BaseInputValidator`.
 
 ## Testing
 
