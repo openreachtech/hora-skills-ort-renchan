@@ -34,7 +34,7 @@ Each skill lives at `kit/skills/<name>/`, directly under the skills directory, a
 
 | Skill | Summary |
 | :-- | :-- |
-| `hor-restfulapi-architecture` | The REST layer of a renchan backend — the renderer architecture under `server/restfulapi/`, routes and versions, `render()`, response/error hashes, the auth filter, and flushers. |
+| `hor-restfulapi-architecture` | The REST layer of a renchan backend: the renderer architecture under `server/restfulapi/`, routes and versions, `render()`, response/error hashes, the auth filter, flushers, the credential a request carries (cookie, Bearer, IAP JWT, HMAC), and an application behind IAP. |
 
 ### Authentication
 
