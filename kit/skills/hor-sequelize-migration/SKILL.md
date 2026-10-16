@@ -15,9 +15,11 @@ A skill for writing the `sequelize/migrations/*.cjs` files. It defines the **phy
 when you add a column in the migration, add the matching attribute in the model (and vice versa).
 The conventions are split across the detail files below.
 
-This repo does **not** `sync`. The schema is **built entirely by migrations** (dev = SQLite /
-staging = MySQL / live = MariaDB — the dialects differ). A model's `unique: true` and the like are
-only declarations; **the real object is always created by the migration**.
+This repo does **not** `sync`. The schema is **built entirely by migrations**. The databases these
+skills assume are dev = SQLite / staging = MySQL / live = MariaDB, and the dialects differ; a
+PostgreSQL project substitutes its own databases, and each rule below names PostgreSQL where it
+differs. A model's `unique: true` and the like are only declarations; **the real object is always
+created by the migration**.
 
 ## Grand principle: a migration is a filled-in template
 
@@ -210,7 +212,8 @@ migrations).
 
 - **Why**: dev = SQLite / staging = MySQL / live = MariaDB differ, and there is no `sync`. A DB FK
   constraint pins insert order and makes cloning into backup (`*_bk`) tables and handling circular
-  references awkward. Referential integrity is enforced in the **app layer** (associations,
+  references awkward. Those costs come from the constraint, not from a dialect, so the rule holds on
+  PostgreSQL unchanged. Referential integrity is enforced in the **app layer** (associations,
   transactions, existence checks). See [foreign-keys.md](./references/foreign-keys.md); for the
   column notation see [notation.md](./references/notation.md).
 
