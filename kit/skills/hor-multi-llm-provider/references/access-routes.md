@@ -18,7 +18,8 @@ getRoute ({ aiProviderId, accessRouteName }) {
 }
 ```
 
-`BaseAiAccessRoute` itself is skipped by discovery the same way `BaseAiModelProcessor` is.
+`BaseAiAccessRoute` sits in `app/tools/`, outside the pool path, as `BaseAiModelProcessor` does, so
+discovery never instantiates the abstract base.
 
 ## Route rows
 
@@ -66,7 +67,7 @@ import {
 
 import environment from '../../globals/env.js'
 import ClaudeSdkApiClient from '../../claudeClient/ClaudeSdkApiClient.js'
-import BaseAiAccessRoute from './BaseAiAccessRoute.js'
+import BaseAiAccessRoute from '../BaseAiAccessRoute.js'
 
 import CONSTANT_HASH from '../../../constants/aiConstants.cjs'
 
@@ -159,7 +160,7 @@ import {
 
 import environment from '../../globals/env.js'
 import ClaudeSdkApiClient from '../../claudeClient/ClaudeSdkApiClient.js'
-import BaseAiAccessRoute from './BaseAiAccessRoute.js'
+import BaseAiAccessRoute from '../BaseAiAccessRoute.js'
 
 import CONSTANT_HASH from '../../../constants/aiConstants.cjs'
 

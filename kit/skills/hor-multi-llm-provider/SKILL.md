@@ -68,8 +68,8 @@ app/tools/
     OpenAiMessagePayloadGenerator.js
     GeminiMessagePayloadGenerator.js
   AiModelResponse.js                          normalized response wrapper
+  BaseAiAccessRoute.js                        abstract contract (provider, route name, client, auth)
   AiAccessRoute/
-    BaseAiAccessRoute.js                      abstract contract (provider, route name, client, auth)
     ClaudeDirectAiAccessRoute.js              concrete: Claude through the vendor API key
     GeminiDirectAiAccessRoute.js              concrete: Gemini through the vendor API key
     OpenAiDirectAiAccessRoute.js              concrete: OpenAI through the vendor API key
@@ -282,7 +282,7 @@ parsing stay in the provider base, so they are written once per vendor and never
 ```js
 import environment from '../../globals/env.js'
 import ClaudeApiClient from '../../claudeClient/ClaudeApiClient.js'
-import BaseAiAccessRoute from './BaseAiAccessRoute.js'
+import BaseAiAccessRoute from '../BaseAiAccessRoute.js'
 
 import CONSTANT_HASH from '../../../constants/aiConstants.cjs'
 
