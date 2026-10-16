@@ -214,6 +214,8 @@ builds the output object. Never return a raw model instance.
   is `false`). `Number()` changes nothing on the other databases, so write it unconditionally.
   - **Never wrap a nullable value directly**, because `Number(null)` is `0`:
     `customerId: order.CustomerId === null ? null : Number(order.CustomerId)`.
+  - `Number()` loses precision above `Number.MAX_SAFE_INTEGER` (2^53 - 1), so an id that can exceed
+    it stays a string (GraphQL `ID`).
   - A GraphQL `Int` is 32 bits. A column whose values can pass 2147483647 takes the `BigNumber`
     scalar (`/hor-graphql-schema`), not `Number()`.
 - Echo pagination for lists.

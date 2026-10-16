@@ -250,7 +250,8 @@ formatResponse ({
 
 - **On PostgreSQL, convert a `BIGINT` id with `Number()`** (`articleId: Number(article.id)`):
   node-postgres returns `BIGINT` as a string, and the SDL type is `Int`. `Number()` changes nothing
-  on MariaDB, MySQL and SQLite. Branch a nullable id first, because `Number(null)` is `0`.
+  on MariaDB, MySQL and SQLite. Branch a nullable id first, because `Number(null)` is `0`. `Number()` loses precision above
+  `Number.MAX_SAFE_INTEGER` (2^53 - 1), so an id that can exceed it stays a string (GraphQL `ID`).
 - **Why minimal:** a Mutation's job is to report *that* the write happened. The frontend re-fetches
   the updated data with a **Query**. Returning a fully rendered object here duplicates the Query and
   couples the two. Keep Mutation and Query concerns separate. See
