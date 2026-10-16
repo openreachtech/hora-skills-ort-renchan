@@ -1,12 +1,11 @@
 ---
 name: hor-multi-llm-provider
 description: >
-  Support multiple LLM providers (Anthropic Claude / OpenAI / Google Gemini) behind one
-  abstraction in a renchan backend: an abstract model processor, one provider base per vendor, one
-  concrete processor per model, and a loader that picks one by model name at runtime, with model
-  and provider metadata in the DB and env, not in code. Use whenever the user asks to add an LLM
-  model or provider, change how a model is selected, normalize provider responses, or wire
-  function calls and file upload.
+  Support multiple LLM providers (Anthropic Claude / OpenAI / Google Gemini) behind one abstraction in
+  a renchan backend: a provider base per vendor, a processor per model, a loader that picks one by
+  model name, and an access route per way of reaching it (vendor API key, Vertex AI service account,
+  Amazon Bedrock), with model and route metadata in the DB and env. Use whenever the user asks to add
+  an LLM model, provider or access route, or to wire function calls and file upload.
 ---
 
 # Multi-LLM Provider (Claude / OpenAI / Gemini behind one abstraction)
