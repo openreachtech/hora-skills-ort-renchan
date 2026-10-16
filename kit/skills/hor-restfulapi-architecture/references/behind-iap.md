@@ -95,7 +95,11 @@ export default class AppRestfulApiContext extends BaseRestfulApiContext {
 
     const claimHash = await engine.share.iapAssertionVerifier
       .verify({ assertion: accessToken })
-      .catch(() => null)
+      .catch(rejection => {
+        console.error(`IAP assertion rejected: ${rejection.constructor.name}`)
+
+        return null
+      })
 
     if (claimHash === null) {
       return null
