@@ -604,19 +604,27 @@ collectMiddleware () {
 
   return [
     ...composedExpressMiddleware,
-    express.json({ limit: '10mb' }),
+    express.json({
+      limit: '10mb',
+      verify: (req, res, body) => {
+        // eslint-disable-next-line no-param-reassign
+        req['rawBody'] = body
+      },
+    }),
     express.static(this.config.staticPath),
     graphqlUploadExpressWithResolvingContentType({ maxFileSize: 10000000, maxFiles: 10 }),
     express.urlencoded({
       extended: true,
       verify: (req, res, body) => {
         // eslint-disable-next-line no-param-reassign
-        req['rawBody'] = body.toString()
+        req['rawBody'] = body
       },
     }),
   ]
 }
 ```
+
+Both `verify` callbacks keep `rawBody` as the `Buffer` they receive, because an HMAC check has to run over the exact bytes the caller signed and `toString()` can alter them.
 
 ## 7. Post-resolve hooks: `defineOnResolved` + `postWorkersPath`
 

@@ -23,7 +23,7 @@ Copy the audience string from the protected resource's IAP settings, not from a 
 
 ## The verifier
 
-`IapAssertionVerifier` mirrors the OIDC verifier (`npm install jose`): `jose` fetches and caches Google's public keys for IAP (published as a JWK set), and `jwtVerify` checks the signature and the claims. The Share keeps it, because the key cache has to outlive a request, and creates it from two env values, `IAP_AUDIENCE` and `IAP_JWKS_URL`.
+`IapAssertionVerifier` mirrors the OIDC verifier (`npm install jose`): `jose` fetches and caches Google's public keys for IAP (published as a JWK set), and `jwtVerify` checks the signature and the claims. It checks `exp` only when the token carries one, so `requiredClaims` rejects an assertion that lacks `exp`, `iat`, `sub` or `email`. The Share keeps it, because the key cache has to outlive a request, and creates it from two env values, `IAP_AUDIENCE` and `IAP_JWKS_URL`.
 
 ```js
 import {
@@ -59,6 +59,7 @@ export default class IapAssertionVerifier {
       issuer: IAP_ISSUER,
       audience: this.audience,
       algorithms: ['ES256'],
+      requiredClaims: ['exp', 'iat', 'sub', 'email'],
     })
 
     return payload
@@ -94,7 +95,11 @@ export default class AppRestfulApiContext extends BaseRestfulApiContext {
 
     const claimHash = await engine.share.iapAssertionVerifier
       .verify({ assertion: accessToken })
-      .catch(() => null)
+      .catch(rejection => {
+        console.error(`IAP assertion rejected: ${rejection.constructor.name}`)
+
+        return null
+      })
 
     if (claimHash === null) {
       return null

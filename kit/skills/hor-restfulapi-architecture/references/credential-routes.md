@@ -98,10 +98,10 @@ The credential is a signature that a caller computes over the request with a sec
 
 ```
 x-key-id: partner-0001
-x-signature: t=1767225600,v1=<hex HMAC-SHA256 of "<t>.<raw body>">
+x-signature: t=1767225600,v1=<hex HMAC-SHA256 of "<t>.<METHOD>.<path>.<raw body>">
 ```
 
-`readHmacSignature()` returns the `x-signature` value. `findUser()` parses it, re-reads `x-key-id`, and checks four things in this order: the timestamp lies within a window of `requestedAt` (five minutes), a partner holds that key id, the digest matches, and the partner is active.
+`readHmacSignature()` returns the `x-signature` value, or `null` when the header is missing. `findUser()` returns `null` for that case before it parses anything, re-reads `x-key-id`, and checks four things in this order: the timestamp lies within a window of `requestedAt` (five minutes), a partner holds that key id, the digest matches, and the partner is active. The signed text binds the method and the path (with its query string), so a signature captured for one operation cannot authorize another.
 
 ```js
 static async findUser ({
@@ -109,9 +109,13 @@ static async findUser ({
   accessToken,
   requestedAt = new Date(),
 }) {
+  if (accessToken === null) {
+    return null
+  }
+
   const signature = SignatureHeader.create({ headerValue: accessToken })
 
-  if (!signature.isWithinWindow({ pointsAt: requestedAt })) {
+  if (signature.isStale({ pointsAt: requestedAt })) {
     return null
   }
 
@@ -119,7 +123,22 @@ static async findUser ({
     keyId: expressRequest.headers['x-key-id'],
   })
 
-  if (!partnerEntity?.verifiesSignature({ signature, rawBody: expressRequest.rawBody })) {
+  if (partnerEntity === null) {
+    return null
+  }
+
+  const hasMismatchedSignature = partnerEntity.hasMismatchedSignature({
+    signature,
+    method: expressRequest.method,
+    path: expressRequest.originalUrl,
+    rawBody: expressRequest.rawBody,
+  })
+
+  if (hasMismatchedSignature) {
+    return null
+  }
+
+  if (partnerEntity.isDeactivated()) {
     return null
   }
 
@@ -127,22 +146,24 @@ static async findUser ({
 }
 ```
 
-`SignatureHeader` splits `t=<seconds>,v1=<hex>` into `timestamp` and `digestHex`, and `isWithinWindow()` compares the timestamp to a moment.
+`SignatureHeader` splits `t=<seconds>,v1=<hex>` into `timestamp` and `digestHex`, and `isStale()` is true when the timestamp lies outside the window around a moment.
 
 ```js
 // Partner
-verifiesSignature ({
+hasMismatchedSignature ({
   signature,
+  method,
+  path,
   rawBody,
 }) {
   const expected = createHmac('sha256', this.extractSigningSecret())
-    .update(`${signature.timestamp}.`)
+    .update(`${signature.timestamp}.${method.toUpperCase()}.${path}.`)
     .update(rawBody ?? '')
     .digest()
   const received = Buffer.from(signature.digestHex, 'hex')
 
-  return received.length === expected.length
-    && timingSafeEqual(received, expected)
+  return received.length !== expected.length
+    || !timingSafeEqual(received, expected)
 }
 ```
 
