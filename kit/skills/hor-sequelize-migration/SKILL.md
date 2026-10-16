@@ -15,9 +15,11 @@ A skill for writing the `sequelize/migrations/*.cjs` files. It defines the **phy
 when you add a column in the migration, add the matching attribute in the model (and vice versa).
 The conventions are split across the detail files below.
 
-This repo does **not** `sync`. The schema is **built entirely by migrations** (dev = SQLite /
-staging = MySQL / live = MariaDB — the dialects differ). A model's `unique: true` and the like are
-only declarations; **the real object is always created by the migration**.
+This repo does **not** `sync`. The schema is **built entirely by migrations**. The databases these
+skills assume are dev = SQLite / staging = MySQL / live = MariaDB, and the dialects differ; a
+PostgreSQL project substitutes its own databases, and each rule below names PostgreSQL where it
+differs. A model's `unique: true` and the like are only declarations; **the real object is always
+created by the migration**.
 
 ## Grand principle: a migration is a filled-in template
 
@@ -132,8 +134,8 @@ module.exports = {
 - **Each column** is declared with a camelCase key + `field: COLUMN_NAME.X` (the snake physical
   name). **Always** declare `allowNull`, and add `defaultValue` when the column has a default. The
   type is `Sequelize.X` (`BIGINT` / `INTEGER` / `STRING(n)` / `TEXT` (long items: `TEXT('medium')`) /
-  `DATE(3)` / `BOOLEAN` / `JSON` / `DECIMAL(p,s)` / `BLOB('long')`). Avoid `ENUM`; use a domain
-  constant + `STRING(n)`.
+  `DATE(3)` / `BOOLEAN` / `JSON` (`JSONB` on PostgreSQL) / `DECIMAL(p,s)` / `BLOB('long')`). Avoid
+  `ENUM`; use a domain constant + `STRING(n)`.
   Datetimes default to `DATE(3)`. Keep `allowNull` / `defaultValue` in sync with the same-named
   column on the model side.
 
@@ -210,7 +212,8 @@ migrations).
 
 - **Why**: dev = SQLite / staging = MySQL / live = MariaDB differ, and there is no `sync`. A DB FK
   constraint pins insert order and makes cloning into backup (`*_bk`) tables and handling circular
-  references awkward. Referential integrity is enforced in the **app layer** (associations,
+  references awkward. Those costs come from the constraint, not from a dialect, so the rule holds on
+  PostgreSQL unchanged. Referential integrity is enforced in the **app layer** (associations,
   transactions, existence checks). See [foreign-keys.md](./references/foreign-keys.md); for the
   column notation see [notation.md](./references/notation.md).
 
@@ -246,9 +249,10 @@ await Promise.all([
 
 ### Shortening a long index name (over ~50 chars)
 
-The DB identifier limit is 64 characters. As a safety margin, shorten once a name would run past
-**~50 characters**. Shorten in the **following priority order**, taking the **initial of each
-word**:
+The identifier limit is 64 characters on MariaDB and MySQL and 63 bytes on PostgreSQL (SQLite sets
+none). As a safety margin, shorten once a name would run past **~50 characters**; the names are
+ASCII snake_case, so a byte is a character. Shorten in the **following priority order**, taking the
+**initial of each word**:
 
 1. **First shorten the column name(s)** (`SHORT_COLUMN_NAME`), keeping the table name in full.
    e.g. `content_generations` + `cgji` (= content_generation_job_id) + `unique`
@@ -256,6 +260,12 @@ word**:
 2. **Only if it is still too long, shorten the table name too** (`SHORT_TABLE_NAME`).
    e.g. `cgrf` (= content_generation_requirement_files) + `cgji` + `index`
    → `cgrf_cgji_index`
+
+Index names are unique per table on MariaDB and MySQL, but per schema on PostgreSQL and per
+database on SQLite, so the same name on two tables is an error there. PostgreSQL also truncates a
+name past 63 bytes instead of rejecting it, so two long names that differ only at the end collide.
+Keep the `<table>_` part (or a `SHORT_TABLE_NAME` unique across the schema). See
+[indexes.md](./references/indexes.md).
 
 Initialism examples: `content_generation_job_id`→`cgji`, `chat_room_id`→`cri`,
 `customer_id`→`ci`, `content_generation_requirement_files`→`cgrf`, `content_plan_rates`→`err`.
@@ -268,9 +278,13 @@ the `addIndex` `name`. Details and a table of real abbreviations are in
 Add a column to an existing table with `addColumn`, and drop the same column symmetrically in
 `down`. The filename is `{timestamp}-{seq}-alter_table-<table>-<column>.cjs`.
 
-- **Do not use `removeColumn` to drop a column.** Sequelize's `removeColumn` does not work on
-  MariaDB (live), so run raw SQL `ALTER TABLE ... DROP COLUMN` via `queryInterface.sequelize.query`
-  (in `up` or `down`; quote identifiers with backticks).
+- **On MariaDB, do not use `removeColumn` to drop a column.** Sequelize's `removeColumn` does not
+  work on MariaDB, so when MariaDB is the live database run raw SQL `ALTER TABLE ... DROP COLUMN`
+  via `queryInterface.sequelize.query` (in `up` or `down`). Quote each identifier with
+  `queryInterface.quoteIdentifier()`, which writes backticks on MariaDB, MySQL and SQLite and
+  double quotes on PostgreSQL; a hand-written backtick is a syntax error on PostgreSQL.
+- **On PostgreSQL (and SQLite), `queryInterface.removeColumn` works.** A project whose databases
+  are only those two drops a column with `removeColumn` and writes no raw SQL.
 - `up` / `down` are **symmetric** (drop in `down` what `up` added). Column adds can be grouped with
   `Promise.all`, but drops are run as one raw statement per column, sequentially.
 - Put a `/* ... */` block at the top of the file describing the **intent** (ticket number, spec
@@ -305,8 +319,8 @@ module.exports = {
   ) {
     // removeColumn does not work on MariaDB, so drop via raw SQL DROP COLUMN.
     await queryInterface.sequelize.query(`
-      ALTER TABLE \`${TABLE_NAME}\`
-      DROP COLUMN \`${COLUMN_NAME}\`
+      ALTER TABLE ${queryInterface.quoteIdentifier(TABLE_NAME)}
+      DROP COLUMN ${queryInterface.quoteIdentifier(COLUMN_NAME)}
     `)
   },
 }
@@ -333,4 +347,5 @@ scripts:
 - [indexes.md](./references/indexes.md) — index naming, UNIQUE, `Promise.all`, composite indexes,
   the shortening algorithm for long names with a table of real examples (§4)
 - [alter-table.md](./references/alter-table.md) — `addColumn`, dropping a column with raw
-  `DROP COLUMN` (because `removeColumn` fails on MariaDB), symmetric up/down, intent comment (§5)
+  `DROP COLUMN` on MariaDB (because `removeColumn` fails there) and with `removeColumn` on
+  PostgreSQL, identifier quoting, symmetric up/down, intent comment (§5)

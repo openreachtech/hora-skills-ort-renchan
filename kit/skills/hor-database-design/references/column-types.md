@@ -6,15 +6,18 @@ belong to `hor-sequelize-migration`.
 
 ## Pick the column type from the shape of the data
 
-Type each column to what it actually holds:
+Type each column to what it actually holds. The Type column is Sequelize notation, written for
+MariaDB (the reference live database); the PostgreSQL column is what the same declaration becomes
+on PostgreSQL.
 
-| Data | Type | Note |
-| --- | --- | --- |
-| Genuinely dynamic / schemaless values | `JSON` | only for values never queried or joined relationally |
-| URL | `TEXT` | not `STRING(n)` — real URLs have no reliable length bound |
-| Long content (article body, description) | `TEXT('medium')` (MEDIUMTEXT) | size the column to the content |
-| Datetime | `DATE(3)` (UTC) | [datetimes.md](./datetimes.md) |
-| Status / category | master-table key column | [master-tables.md](./master-tables.md) |
+| Data | Type | PostgreSQL | Note |
+| --- | --- | --- | --- |
+| Genuinely dynamic / schemaless values | `JSON` | `JSONB` (`jsonb`) | only for values never queried or joined relationally |
+| URL | `TEXT` | `TEXT` | not `STRING(n)`, because real URLs have no reliable length bound |
+| Long content (article body, description) | `TEXT('medium')` (MEDIUMTEXT) | `TEXT` | size the column to the content |
+| Short string (name, code) | `STRING(n)` | `STRING(n)` (`varchar(n)`) | pick `n` by use |
+| Datetime | `DATE(3)` (UTC) | `DATE(3)` (`timestamptz`) | [datetimes.md](./datetimes.md) |
+| Status / category | master-table key column | master-table key column | [master-tables.md](./master-tables.md) |
 
 - **Why `JSON` only for truly dynamic data**: `JSON` is the right home for a value whose structure
   varies per row and is never the target of a relational query (a settings blob, a captured
@@ -23,11 +26,24 @@ Type each column to what it actually holds:
   and directly violates the
   [grand principle](../SKILL.md#grand-principle-the-database-holds-canonical-normalized-truth).
   Normalize relational facts into tables; reserve `JSON` for the genuinely schemaless.
+- **On PostgreSQL, default a JSON column to `JSONB`.** PostgreSQL's `json` type has no equality
+  operator, so `DISTINCT`, `GROUP BY`, `UNION` and `=` over a table that holds one fail with
+  `could not identify an equality operator for type json`. `jsonb` has the operator and can carry a
+  GIN index; it does not keep key order or whitespace, which a schemaless blob never needs. Only
+  PostgreSQL declares `JSONB` in Sequelize, so MariaDB, MySQL and SQLite keep `JSON`. Files that
+  run on PostgreSQL and on another dialect choose with
+  `queryInterface.sequelize.getDialect() === 'postgres'`.
 - **Why URL as `TEXT`**: URLs (signed storage links, tracking-laden redirects) routinely exceed any
   `STRING(n)` you would guess, and a too-short limit truncates silently and corrupts the reference.
   `TEXT` removes the guess.
 - **Why long content as `TEXT('medium')`**: plain `TEXT` can be too small for real article bodies;
   choose the width from the expected content rather than discovering the ceiling in production.
+  This is a MariaDB and MySQL concern: `TEXT` is capped near 64KB there. PostgreSQL has one `TEXT`
+  type with no such cap (about 1GB), so Sequelize drops the `'medium'` option with a warning and
+  you write plain `TEXT`.
+- **Why `STRING(n)` is sized by use**: a `STRING(191)` default comes from MariaDB and MySQL, where
+  191 is the longest utf8mb4 column that fits an older index-key limit of 767 bytes. PostgreSQL has
+  no such limit, so there `n` only has to fit the data.
 
 ```
 -- Good: type matches the data's shape

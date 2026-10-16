@@ -177,7 +177,7 @@ role: {
 | `TEXT` / `TEXT('medium')` | long text (body, message, error). For an item that can grow long, use `TEXT('medium')` |
 | `DATE(3)` | millisecond-precision datetime (`registeredAt` / `expiresAt`, etc.) |
 | `BOOLEAN` | truth value (`isActive`, etc.) |
-| `JSON` | structured data (`resultJson`; an FK-less id array `optionIdsJson`) |
+| `JSON` | structured data (`resultJson`; an FK-less id array `optionIdsJson`). On PostgreSQL use `JSONB`, because `json` has no equality operator |
 | `DECIMAL(p, s)` | money / rate (`dailyRate` as `DECIMAL(14, 2)`, etc.) |
 | `BLOB('long')` | binary (uploaded file body) |
 | `ENUM(...)` | **avoid by default**; use a domain constant + `STRING(n)` |

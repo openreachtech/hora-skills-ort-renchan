@@ -2,10 +2,11 @@
 name: hor-restfulapi-architecture
 description: >
   Understand and build the RESTful API layer of a renchan-style backend: the renderer architecture
-  under server/restfulapi/. Use this skill whenever the user asks how the REST API is structured,
-  where a REST endpoint lives, or how to add or edit one — a GET / POST / PUT / PATCH / DELETE
-  Renderer, its route and version, the render() entry point, the response and error hashes, the
-  per-request context and share, the engine's auth filter, and response flushers.
+  under server/restfulapi/. Use whenever the user asks how the REST API is structured, where an
+  endpoint lives, or how to add or edit one: a Renderer per HTTP method, its route, version and
+  server directory, render(), the response and error hashes, the per-request context and share, the
+  auth filter, flushers, the credential a request carries (cookie, Bearer, IAP JWT, HMAC), and an
+  app behind IAP.
 ---
 
 # RESTful API Architecture
@@ -126,6 +127,23 @@ server/restfulapi/
   discovers every renderer under `renderersPath`, reads its `routePath` and `method`, and registers
   the express route — you never wire routes by hand.
 
+- **Several RESTful API servers: one directory per server.** When a project runs more than one
+  server (for example one public and one reachable only inside a VPN), each server's routes live
+  under `renderers/<server>/v1/`, and each server's engine points `renderersPath` at its own
+  `renderers/<server>/v1/`. A single `renderers/v1/` shared by two engines would mount every route
+  on both servers, so the VPN-only routes would answer on the public one. A project with one
+  server keeps `renderers/v1/`.
+
+```
+server/restfulapi/renderers/
+  public/
+    v1/
+      get/   <Name>Renderer.js
+  vpn/
+    v1/
+      get/   <Name>Renderer.js
+```
+
 Detail in [renderers.md](./references/renderers.md).
 
 ## 2. The renderer
@@ -213,9 +231,11 @@ These three set up the whole REST surface, mirroring the GraphQL engine/context/
   (`collectMiddleware()`), the **auth filter** (`generateFilterHandler()`), and the **visa issuers**
   (`visaIssuers`: `hasAuthenticated` / `hasAuthorized` / `hasPathPermission`).
 - **Context** (`AppRestfulApiContext extends BaseRestfulApiContext`) — built per request. Override
-  `static async findUser()` to resolve the authenticated user from the access-token header. Exposes
-  `now`, `userId`, `userEntity`, `share`, `env`, and the visa predicates
-  (`hasAuthenticated()` / `hasAuthorized()` / `hasPathPermission()`).
+  `static async findUser()` to resolve the authenticated user from the access-token header, or
+  `static extractAccessToken()` as well to read the credential from another route (a cookie, a
+  Bearer token, an IAP JWT, an HMAC signature). Exposes `now`, `userId`, `userEntity`, `share`,
+  `env`, and the visa predicates (`hasAuthenticated()` / `hasAuthorized()` /
+  `hasPathPermission()`).
 - **Share** (`AppRestfulApiShare extends BaseRestfulApiShare`) — the per-process object (holds `env`;
   put shared clients/providers here). Often a `// noop` subclass.
 
@@ -267,6 +287,12 @@ The adapter, the validator contract, and the error mapping are in
 - [engine-and-context.md](./references/engine-and-context.md) — the engine (`config`,
   `renderersPath` / `pathPrefix`, `Share` / `Context`, `standardErrorEnvelopHash`, middleware,
   filter handler, visa issuers) and the per-request context / per-process share (§3)
+- [credential-routes.md](./references/credential-routes.md) covers reading the credential from a cookie,
+  a Bearer token, an IAP JWT or an HMAC signature by overriding `extractAccessToken()` on the
+  context, with the CSRF and replay rules each route brings (§3)
+- [behind-iap.md](./references/behind-iap.md) covers an application behind IAP with no sign-in of its
+  own: the IAP JWT and its claims, the verifier, a context that finds the actor by `sub`, and what
+  the filter skips (§3)
 - [response-and-flusher.md](./references/response-and-flusher.md) — `RestfulApiResponse`
   (success / `createAsError`), `errorStructureHash` → `errorResponseHash`, extending the response,
   and flushers (JSON / Html / Csv / custom, `FlusherCtor`, `contentType`) (§4)

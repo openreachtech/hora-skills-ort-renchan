@@ -34,13 +34,14 @@ Each skill lives at `kit/skills/<name>/`, directly under the skills directory, a
 
 | Skill | Summary |
 | :-- | :-- |
-| `hor-restfulapi-architecture` | The REST layer of a renchan backend — the renderer architecture under `server/restfulapi/`, routes and versions, `render()`, response/error hashes, the auth filter, and flushers. |
+| `hor-restfulapi-architecture` | The REST layer of a renchan backend: the renderer architecture under `server/restfulapi/`, routes and versions, `render()`, response/error hashes, the auth filter, flushers, the credential a request carries (cookie, Bearer, IAP JWT, HMAC), and an application behind IAP. |
 
 ### Authentication
 
 | Skill | Summary |
 | :-- | :-- |
-| `hor-cookie-authentication` | Cookie-based authentication for a renchan backend, per actor — the credential and token models, access plus rotating refresh tokens with reuse detection, the HttpOnly refresh cookie, and the signIn / signUp / signOut / renewAccessToken resolvers. |
+| `hor-cookie-authentication` | Password sign-in with cookie-based sessions for a renchan backend, per actor: the credential and token models, access plus rotating refresh tokens with reuse detection, the HttpOnly refresh cookie, and the signIn / signUp / signOut / renewAccessToken resolvers. |
+| `hor-oidc-sign-in` | Sign an actor in through an external OpenID Connect provider: the authorization code flow with PKCE, state and nonce, ID token verification, and linking the provider's subject to an actor before the session opens. |
 
 ### Execution placement
 
@@ -56,7 +57,7 @@ Each skill lives at `kit/skills/<name>/`, directly under the skills directory, a
 | :-- | :-- |
 | `hor-ai-agent-structure` | Structure an app-side AI agent on `mentsu-agent-loop-core`: a `ProceduralAgentLoop` subclass plus per-step `BaseAgentAction` subclasses under `app/agents/<name>/`. |
 | `hor-agent-loop` | Build an LLM agent loop with the three `@openreachtech/mentsu-agent-loop` packages — the core iteration engine, a BullMQ job runner, and a GraphQL mutation plus progress subscription. |
-| `hor-multi-llm-provider` | Support Claude / OpenAI / Gemini behind one abstraction — an abstract model processor, a base per vendor, a concrete class per model, and a loader that picks one by model name. |
+| `hor-multi-llm-provider` | Support Claude / OpenAI / Gemini behind one abstraction: an abstract model processor, a base per vendor, a concrete class per model, a loader that picks one by model name, and an access route per way of reaching it (vendor API key, Vertex AI service account, Amazon Bedrock). |
 | `hor-light-rag` | Add lightweight RAG for agent documents without a vector database — a vector-first / LLM-fallback ranker over stored `Document` rows, plus a MySQL n-gram fulltext keyword index. |
 | `hor-ai-prompt-document-store` | Hold agent config, instructions, documents and tool schemas in the database rather than in code, assembling the runtime prompt at request time and versioning through backup tables. |
 
@@ -70,7 +71,7 @@ Each skill lives at `kit/skills/<name>/`, directly under the skills directory, a
 
 | Skill | Summary |
 | :-- | :-- |
-| `hor-type-interface` | Define `.d.ts` type interfaces — model interfaces under `types/models/` (global `model`) and resolver Input/Result types under `types/resolvers/<category>/`. |
+| `hor-type-interface` | Define `.d.ts` type interfaces, with model interfaces under `types/models/` (global `model`) and resolver Input/Result types in `types/graphql.d.ts` (global `graphql.<category>`). |
 | `hor-constant-definition` | Define an application constant as two files: a CommonJS master under `constants/` (the source of truth) plus an ESM bridge under `app/constants/` that re-exports it. |
 
 ### Design patterns
