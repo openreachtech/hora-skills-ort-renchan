@@ -5,7 +5,7 @@ description: >
   this skill whenever the user asks to add or edit a job under app/jobs/** — a Manifest / Worker /
   Dispatcher triple, a cron or interval (repeatable) job, enqueuing from a GraphQL/REST resolver,
   publishing progress to a GraphQL subscription, the worker daemon entry point, splitting work
-  across queues, or tuning concurrency / retries / rate limits.
+  across queues, tuning concurrency / retries / rate limits, the queue's Redis policy, or duplicate guards.
 ---
 
 # renchan-job-bullmq
@@ -88,11 +88,14 @@ Full classes, hooks, the base-app-dispatcher pattern, and the enqueue paths are 
   the one config object: `config` = `{ workersPath, schedulersPath, redisConfig }` (both paths point
   at `app/jobs`), plus `ShareCtor` / `ContextCtor`, error codes, log path. `createAsync({ subscriptionBroker })`
   injects the progress broker (§4).
-- **Share** — per-**process** DI (holds `subscriptionBroker` or `null`, `env`, `timber`, …).
+- **Share** is the per-**process** DI (holds `subscriptionBroker` or `null`, `env`, `timber`, …). It is the
+  only class that imports `env`.
 - **Context** — per-**job** DI, created for each run and passed to `executeJob`.
-- **RedisConnection** (`app/queue/RedisConnection.js`) —
+- **RedisConnection** (`app/queue/RedisConnection.js`) is created by the Share with the env
+  (`ContentGenerationJobShare.createRedisConnection()`), and gives
   `generateConnectionOptions()` for BullMQ (**`maxRetriesPerRequest: null` required**) and
   `generatePubSubOptions()` for the broker. **API and Daemon must share one Redis.**
+  That Redis must run with `maxmemory-policy noeviction`; an evicting policy corrupts the queues.
 
 Details and the package-exports table are in [engine-and-infra.md](./references/engine-and-infra.md).
 
@@ -154,12 +157,18 @@ Details and the directory diagram are in [queues.md](./references/queues.md).
   (`{ millisecond, isImmediately }`), listed in `SchedulerService.collectScheduleInputs()` with a
   `schedulerId` matching the scheduler class. See [daemon-and-scheduler.md](./references/daemon-and-scheduler.md).
 - **Connection reuse** — `JobDispatcherProvider`
-  (`app/tools/JobDispatcherProvider.js`) caches one
-  Dispatcher per `DispatcherCtor` and dispatches with `keepsConnection: true`; the request Share
-  holds one, torn down on process exit. Prefer it over `Dispatcher.createAsync()` per request.
+  (`app/tools/JobDispatcherProvider.js`) caches one Dispatcher per `DispatcherCtor` and dispatches
+  with `keepsConnection: true`; the request Share holds one, torn down on process exit. Prefer it
+  over `Dispatcher.createAsync()` per request.
 - **Retries & idempotency** — set `attempts` in `optionHash`; make `executeJob` idempotent (BullMQ may
   re-run). Expensive AI jobs checkpoint to `content_generations.intermediate_steps_json` and
   resume on retry.
+  `onJobFailed` fires on every failed attempt, so treat a job as finally failed only when
+  `jobModel.job.finishedOn` is a number, never by comparing `attemptsMade` with `attempts`
+  ([job-triple.md](./references/job-triple.md)).
+- **Duplicate guard**: to keep identical requests from enqueuing twice, pass
+  `optionHash: { deduplication: { id } }` to `dispatchJob` rather than a custom `jobId`
+  ([job-triple.md](./references/job-triple.md)).
 - **Concurrency & rate limiting** — `buildOptionHash()` forwards `concurrency` + `limiter`
   (`app/tools/ContentGenerationRateLimiter.js`).
 - **Testing** — unit-test workers/dispatchers with the `hoc-jest` skill.

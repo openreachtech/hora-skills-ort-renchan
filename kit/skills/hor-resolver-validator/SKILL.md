@@ -18,10 +18,9 @@ returns `false`, raises that entry's error. Per-value checks (presence / number 
 positive-integer …) are delegated to **`@openreachtech/mentsu-value-inspector`**, imported directly
 (it is a published module — use it from the package, not a local wrapper).
 
-> Directory layout differs from the current repo on purpose — this is the target convention. The
-> support classes (`BaseInputValidator`, `NormalPaginationInputValidator`) come from the renchan
-> framework / shared layer; the inspectors come from the `@openreachtech/mentsu-value-inspector`
-> module.
+> The support classes (`BaseInputValidator`, `NormalPaginationInputValidator`) ship with
+> renchan-boilerplate under `app/validator/forResolver/`; the inspectors come from the
+> `@openreachtech/mentsu-value-inspector` module.
 
 ## Grand principle: declare `[predicate, error]` entries, let the base run them
 
@@ -176,8 +175,8 @@ async resolve ({
 }
 ```
 
-`create({ input, errorHash })` and the run entrypoint (shown as `validate()`) are provided by
-`BaseInputValidator` — match the actual base API in your framework.
+`create({ input, errorHash })` and `validate()` come from `BaseInputValidator`. A resolver that
+decides itself when to throw calls `validateInput()`, which returns the error or `null`.
 
 ## Testing
 

@@ -22,10 +22,12 @@ AUTH_COOKIE_PATH=
 AUTH_COOKIE_DOMAIN=
 ```
 
-Declare them on the env-facade typedef (`app/globals/env.js` + `env.cjs`) and read them **through the facade** (`env.AUTH_*`), never `process.env` directly. The refresh-token model reads the TTL from it, with a fallback default:
+Declare them on the env-facade typedef (`app/globals/env.js` + `env.cjs`) and read them **through the facade** (`env.AUTH_*`), never `process.env` directly. Only the Share imports `env`, so the refresh-token model receives it as an argument (`share.env`) and reads the TTL with a fallback default. A getter calls no method, so the read is a method:
 
 ```js
-static get ttlDays () {
+static generateTtlDays ({
+  env,
+}) {
   return Number(env.AUTH_REFRESH_TOKEN_TTL_DAYS)
     || DEFAULT_REFRESH_TOKEN_TTL_DAYS // 14
 }

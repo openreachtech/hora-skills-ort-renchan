@@ -38,6 +38,10 @@ server/restfulapi/renderers/<version>/<method>/<Name>Renderer.js
   than repeating it in the name.
 - A new API **version** is a new directory (`renderers/v2/`) served by an engine pointed at it with
   its own `pathPrefix` (`/v2`). See [engine-and-context.md](./engine-and-context.md).
+- When a project runs **several RESTful API servers**, the server name becomes the first level:
+  `renderers/<server>/<version>/<method>/<Name>Renderer.js`, for example
+  `renderers/vpn/v1/get/HealthCheckRenderer.js`. Each server's engine serves only its own
+  `renderers/<server>/<version>/`, so a route placed under one server never mounts on another.
 
 ## The fixed surface
 

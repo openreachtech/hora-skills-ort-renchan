@@ -41,7 +41,7 @@ to pick document ids from a metadata catalog.
 | Family | What it retrieves | Where |
 | --- | --- | --- |
 | **Document RAG** (this skill's core) | agent documents (`Document` bodies) for background knowledge | `DynamicDocumentVectorSelector` + `DynamicDocumentsBackgroundKnowledgeFetcher`, meeting at `AiAgentBaseKnowledgeAssembler` |
-| **N-gram fulltext** | generic keyword rows via `MATCH ... AGAINST` | `NgramSearchWordGenerator` + `FullTextSearchConditionGenerator` |
+| **N-gram fulltext** | generic keyword rows via `MATCH ... AGAINST` (MySQL / MariaDB only) | `NgramSearchWordGenerator` + `FullTextSearchConditionGenerator` |
 
 > Record search over CRM data (not documents) goes through Elasticsearch
 > (`app/ReplicaFragments/OriginObjectReplicaFragmentClient.js`) and is a **separate subsystem** — see the
@@ -205,6 +205,11 @@ return this.logicalOperator === 'or'
 
 AND → `+apple +banana`; OR → `apple banana`. Use this for generic fulltext filtering, not for agent
 document RAG.
+
+This builder assumes **MySQL / MariaDB**. PostgreSQL has no `MATCH ... AGAINST` and no BOOLEAN
+mode, so the emitted clause is a syntax error there; its equivalent is a `tsvector` column matched
+by a `tsquery` with `@@` (or the `pg_trgm` extension for trigram matching). A PostgreSQL project
+writes its own condition generator and keeps the n-gram tokenizer, which is database-independent.
 
 ## Models
 

@@ -62,10 +62,10 @@ export default class UsersQueryResolver extends BaseQueryResolver {
    * @override
    * @param {{
    *   variables: {
-   *     input: server.graphql.admin.UsersInput
+   *     input: graphql.admin.UsersInput
    *   }
    * }} params
-   * @returns {Promise<server.graphql.admin.UsersResult>}
+   * @returns {Promise<graphql.admin.UsersResult>}
    */
   async resolve ({
     variables: {
@@ -111,7 +111,7 @@ export default class UsersQueryResolver extends BaseQueryResolver {
    * Validate the input of the users query.
    *
    * @param {{
-   *   input: server.graphql.admin.UsersInput
+   *   input: graphql.admin.UsersInput
    * }} params
    * @returns {InstanceType<RenchanGraphqlErrorCtor> | null}
    */
@@ -129,7 +129,7 @@ export default class UsersQueryResolver extends BaseQueryResolver {
    * Create a UsersInputValidator instance.
    *
    * @param {{
-   *   input: server.graphql.admin.UsersInput
+   *   input: graphql.admin.UsersInput
    *   errorHash?: ErrorHash
    * }} params
    * @returns {UsersInputValidator}
@@ -241,7 +241,7 @@ export default class UsersQueryResolver extends BaseQueryResolver {
    *   pagination: graphql.NormalPaginationInput
    *   totalRecords: number
    * }} params
-   * @returns {server.graphql.admin.UsersResult}
+   * @returns {graphql.admin.UsersResult}
    */
   formatResponse ({
     users,
@@ -354,12 +354,12 @@ export default class DepartmentsQueryResolver extends BaseQueryResolver {
 
 ## The trailing typedef block
 
-Types tied to the DB and the GraphQL schema live in `/types` (`model.*`, `server.graphql.*`); the
+Types tied to the DB and the GraphQL schema live in `/types` (`model.*`, `graphql.*`); the
 resolver file only **aliases** them and declares its own local shapes. Keep the block at the bottom,
 after the class. A resolver with associations typically declares:
 
 - `ErrorCodeHash` — the keys of `errorCodeHash` (values `string`).
-- `Input` / `Result` aliases — `@typedef {server.graphql.<endpoint>.XxxInput} XxxInput`.
+- `Input` / `Result` aliases — `@typedef {graphql.<endpoint>.XxxInput} XxxInput`.
 - `ErrorHash` — `Record<string, RenchanGraphqlErrorCtor>`.
 - `RenchanGraphqlErrorCtor` — `typeof import('@openreachtech/renchan').RenchanGraphqlError`.
 - An **associated-entity** typedef describing the `include` tree, when a finder returns a record with

@@ -116,7 +116,7 @@ Use the `DataTypes` in the table below.
 | `TEXT` | long text (body, message) |
 | `DATE(3)` | millisecond-precision datetime (`registeredAt` / `savedAt`, etc.) |
 | `BOOLEAN` | truth value (`isActive`, etc.) |
-| `JSON` | structured data (`questionsJson` / `resultJson`) |
+| `JSON` | structured data (`questionsJson` / `resultJson`). On PostgreSQL use `DataTypes.JSONB`, matching the migration |
 | `DECIMAL(p, s)` | money / rate (`dailyRate`, etc.) |
 | `BLOB('long')` | binary (uploaded file body) |
 | `ENUM(...)` | **avoid by default**. Use a domain constant + `STRING(n)` instead |

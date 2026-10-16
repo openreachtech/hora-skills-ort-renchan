@@ -214,5 +214,6 @@ Express relations with Sequelize associations **only**. Do not add DB foreign-ke
 (`hor-sequelize-migration`).
 
 - **Why**: referential integrity is enforced in the app layer (transactions, existence checks).
-  Not adding constraints keeps migration ordering, record deletion, and sqlite tests simple. A
+  Not adding constraints keeps migration ordering, record deletion, and sqlite tests simple. The
+  rule is the same on MariaDB, MySQL and PostgreSQL; sqlite is only the test database. A
   model's `belongsTo` etc. are **declarations for JOIN and include**, independent of DB constraints.

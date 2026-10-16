@@ -45,11 +45,11 @@ export default class UpdateArticleMutationResolver extends BaseMutationResolver 
    *
    * @param {{
    *   variables: {
-   *     input: server.graphql.user.UpdateArticleInput
+   *     input: graphql.user.UpdateArticleInput
    *   }
    *   context: UserGraphqlContext
    * }} params
-   * @returns {Promise<server.graphql.user.UpdateArticleResult>}
+   * @returns {Promise<graphql.user.UpdateArticleResult>}
    */
   async resolve ({
     variables: {
@@ -80,7 +80,7 @@ export default class UpdateArticleMutationResolver extends BaseMutationResolver 
   /**
    * Create an input validator instance
    *
-   * @param {{ input: server.graphql.user.UpdateArticleInput }} params
+   * @param {{ input: graphql.user.UpdateArticleInput }} params
    * @returns {UpdateArticleInputValidator}
    */
   createInputValidator ({
@@ -95,7 +95,7 @@ export default class UpdateArticleMutationResolver extends BaseMutationResolver 
   /**
    * Validate the input
    *
-   * @param {{ input: server.graphql.user.UpdateArticleInput }} params
+   * @param {{ input: graphql.user.UpdateArticleInput }} params
    * @returns {import('@openreachtech/renchan').RenchanGraphqlError | null}
    */
   validateInput ({
@@ -111,7 +111,7 @@ export default class UpdateArticleMutationResolver extends BaseMutationResolver 
    * Generate the transaction callback
    *
    * @param {{
-   *   input: server.graphql.user.UpdateArticleInput
+   *   input: graphql.user.UpdateArticleInput
    *   context: UserGraphqlContext
    * }} params
    * @returns {(transaction?: import('sequelize').Transaction) => Promise<model.ArticleEntity>}
@@ -186,7 +186,7 @@ export default class UpdateArticleMutationResolver extends BaseMutationResolver 
    * Format the response
    *
    * @param {{ article: model.ArticleEntity }} params
-   * @returns {server.graphql.user.UpdateArticleResult}
+   * @returns {graphql.user.UpdateArticleResult}
    */
   formatResponse ({
     article,
@@ -260,6 +260,10 @@ formatResponse ({
   }
 }
 ```
+
+On PostgreSQL, wrap each `BIGINT` id in `Number()` (`articleId: Number(article.id)`): node-postgres
+returns it as a string, while the result type declares `Int`. It is a no-op on MariaDB, MySQL and
+SQLite, and a nullable id is branched first because `Number(null)` is `0`.
 
 Do not assemble a display object here. The mutation reports the write; the frontend re-queries for
 the rendered data. A `formatResponse` that maps/sorts/joins rows is a sign business logic leaked

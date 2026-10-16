@@ -34,13 +34,14 @@
 
 | スキル | 概要 |
 | :-- | :-- |
-| `hor-restfulapi-architecture` | renchan バックエンドの REST 層。`server/restfulapi/` 配下のレンダラーアーキテクチャ、ルートとバージョン、`render()`、レスポンス/エラーハッシュ、認証フィルタ、フラッシャー。 |
+| `hor-restfulapi-architecture` | renchan バックエンドの REST 層。`server/restfulapi/` 配下のレンダラーアーキテクチャ、ルートとバージョン、`render()`、レスポンス/エラーハッシュ、認証フィルタ、フラッシャー、リクエストが運ぶ認証情報の読み取り(Cookie、Bearer、IAP JWT、HMAC)、IAP の背後で動くアプリケーション。 |
 
 ### 認証
 
 | スキル | 概要 |
 | :-- | :-- |
-| `hor-cookie-authentication` | renchan バックエンドのアクター別 Cookie 認証。認証情報とトークンのモデル、アクセストークンとローテーションするリフレッシュトークン(再利用検知つき)、HttpOnly のリフレッシュ Cookie、signIn / signUp / signOut / renewAccessToken の各リゾルバー。 |
+| `hor-cookie-authentication` | renchan バックエンドのアクター別のパスワードサインインと Cookie ベースのセッション。認証情報とトークンのモデル、アクセストークンとローテーションするリフレッシュトークン(再利用検知つき)、HttpOnly のリフレッシュ Cookie、signIn / signUp / signOut / renewAccessToken の各リゾルバー。 |
+| `hor-oidc-sign-in` | 外部の OpenID Connect プロバイダ経由でアクターをサインインさせます。PKCE つき認可コードフロー、state と nonce、ID トークンの検証、セッションを開く前のプロバイダの subject とアクターの紐付け。 |
 
 ### 実行場所
 
@@ -56,7 +57,7 @@
 | :-- | :-- |
 | `hor-ai-agent-structure` | `mentsu-agent-loop-core` 上にアプリ側 AI エージェントを構成します。`app/agents/<name>/` に `ProceduralAgentLoop` サブクラスとステップごとの `BaseAgentAction` サブクラスを置きます。 |
 | `hor-agent-loop` | `@openreachtech/mentsu-agent-loop` の 3 パッケージで LLM エージェントループを構築します。core(反復エンジン)、BullMQ ジョブ実行、GraphQL の起動 mutation と進捗 subscription。 |
-| `hor-multi-llm-provider` | Claude / OpenAI / Gemini を 1 つの抽象の下で扱います。抽象モデルプロセッサ、ベンダーごとの基底、モデルごとの具象クラス、モデル名で選択するローダー。 |
+| `hor-multi-llm-provider` | Claude / OpenAI / Gemini を 1 つの抽象の下で扱います。抽象モデルプロセッサ、ベンダーごとの基底、モデルごとの具象クラス、モデル名で選択するローダー、モデルへの到達方法ごとのアクセスルート(ベンダー API キー、サービスアカウントによる Vertex AI、Amazon Bedrock)。 |
 | `hor-light-rag` | ベクタ DB なしで AI エージェント向けの軽量 RAG を追加します。ローカル埋め込みによる vector-first / LLM フォールバックのランキングと、MySQL の n-gram 全文検索インデックス。 |
 | `hor-ai-prompt-document-store` | エージェントの設定・指示文・ドキュメント・ツールスキーマをコードに埋め込まず DB に保持し、リクエスト時にプロンプトへ組み立て、バックアップテーブルでバージョン管理します。 |
 
@@ -70,7 +71,7 @@
 
 | スキル | 概要 |
 | :-- | :-- |
-| `hor-type-interface` | `.d.ts` で型インターフェースを定義します。`types/models/` のモデルインターフェース(global `model`)と、`types/resolvers/<category>/` のリゾルバ Input/Result 型。 |
+| `hor-type-interface` | `.d.ts` で型インターフェースを定義します。`types/models/` のモデルインターフェース(global `model`)と、`types/graphql.d.ts` のリゾルバ Input/Result 型(global `graphql.<category>`)。 |
 | `hor-constant-definition` | アプリ定数は必ず 2 ファイルで定義します。`constants/` の CommonJS マスター(単一の情報源)と、それを再 export する `app/constants/` の ESM ブリッジ。 |
 
 ### 設計パターン

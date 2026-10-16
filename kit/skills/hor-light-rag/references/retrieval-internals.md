@@ -140,4 +140,6 @@ from the filename):
 empty; `#formatAgainstText()` delegates to `NgramSearchWordGenerator`.
 
 This n-gram/fulltext infra is generic MySQL/MariaDB fulltext and is **not** wired into the document-RAG
-selectors.
+selectors. `NgramTextTokenizer` is database-independent, but `NgramSearchWordGenerator` and
+`FullTextSearchConditionGenerator` emit MySQL `MATCH ... AGAINST ... IN BOOLEAN MODE` and do not run
+on PostgreSQL (see `SKILL.md`).

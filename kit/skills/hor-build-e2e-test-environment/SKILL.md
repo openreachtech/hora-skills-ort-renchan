@@ -1,12 +1,12 @@
 ---
 name: hor-build-e2e-test-environment
 description: >
-  Build, run and debug the manual local E2E environment under `e2e/docker/` — a
-  container-compose stack of the product's real middleware (system of record, cache and job queue,
-  event transport, read model, object storage, the reverse-proxy edge), its own seed set, and the
-  `up` / `start` / `seed` / `clean` / `down` scripts that drive it. Stated per component role, so
-  any stack maps onto it. Use also when adding E2E seed data. Verifying behavior inside the
-  environment is out of scope.
+  Build, run and debug the manual local E2E environment under `e2e/docker/`, a compose stack of the
+  product's real middleware (system of record, cache and job queue, event transport, read model,
+  object storage, edge, identity provider, IAP stand-in, cloud API), its own seed set, and the `up`
+  / `start` / `seed` / `clean` / `down` scripts that drive it. Stated per component role, so any
+  stack maps onto it. Use also when adding E2E seed data. Verifying behavior inside it is out of
+  scope.
 ---
 
 # Build E2E Test Environment
@@ -93,16 +93,25 @@ of the skill apply to a stack it was not written in.
 | **read model / search** — the derived store screens read from | a search cluster with an analyzer plugin baked in | another search engine, a materialized view, a denormalized table, a cache the read path is served from |
 | **object storage** — where uploaded and derived files live | a per-run directory on the filesystem | an S3-compatible object server, a cloud-storage emulator, a bucket with a per-run prefix |
 | **edge** — what the browser actually connects to | nginx as a reverse proxy in front of the application | Apache httpd, Caddy, Traefik, HAProxy, or a managed load balancer / API gateway whose behaviour the product depends on |
+| **identity provider** (what the product signs people in through) | a local OpenID Connect server that serves discovery, authorization, token and key endpoints and signs in a fixed set of test accounts | Keycloak or Dex in development mode, a mock OIDC server, the provider's own local emulator where one exists |
+| **IAP stand-in** (what signs a request in before it reaches the application, where production sits behind IAP) | a small proxy in front of the application that adds `x-goog-iap-jwt-assertion`, signed with a local test key whose public half it serves as a key set | any reverse proxy with a signing step, an auth-proxy container set to inject a signed header |
+| **fake cloud API** (a managed cloud service the application calls) | a local emulator of that service, started with the stack and seeded by `seed.sh` | the vendor's emulator, a stub server that answers with recorded responses |
 | **the application and its own processes** — the product itself | the API server, a worker daemon, a change-log consumer | whatever process set has to be running for a request to be answered end to end |
 
 - **A role your product does not have simply drops out.** No read model means no index-creation step,
   no backfill and none of the propagation traps — and every other rule still holds. Two roles filled
   by one component (a database that is both system of record and job queue) collapse into one service
   and one set of values.
-- **Roles the example does not name join the same list.** A mail catcher, an identity-provider stub, a
-  payment sandbox, a headless browser: if the product genuinely talks to it, it belongs in the
+- **Roles the example does not name join the same list.** A mail catcher, a payment sandbox, a
+  headless browser: if the product genuinely talks to it, it belongs in the
   environment, or the environment is not end-to-end. Give it the same treatment — loopback-only port
   on the E2E block, healthcheck, started by the runner.
+- **A stand-in replaces where a service lives, never what the application checks.** The identity
+  provider stub has its own local issuer, which `OIDC_ISSUER` points at, and the IAP stand-in
+  presents the real IAP issuer value, signed with keys the test environment supplies. Both use the
+  claims the real ones use, and `.env.<stack-env>` points the application at their local key set and
+  audience, values that reach only this machine. No verification in the application is relaxed so the stack can run. Where
+  production sits behind IAP, the stand-in is the edge of this stack ([§5](#5-the-edge-what-the-browser-actually-connects-to)).
 - **What is universal and what is example.** These hold for any stack: one command in dependency
   order with idempotent steps; loopback-only publishing on a port block and compose project name of
   its own; an environment name and env file of the stack's own; a seed set of its own in a reserved id band;

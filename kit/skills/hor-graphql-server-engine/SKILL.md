@@ -1,12 +1,12 @@
 ---
 name: hor-graphql-server-engine
 description: >
-  Implement and wire a GraphQL server engine — a per-endpoint *GraphqlServerEngine class under
-  server/graphql/ that declares one endpoint's URL, schema path, resolver directories, Share and
-  Context DI, auth filter, middleware, scalars and error codes, then is booted in server/index.js.
-  Use whenever the user asks to add a GraphQL endpoint (a new role such as user / admin / portal),
-  pair a stub engine with an actual one, change its auth policy or public-operation allowlist, or
-  enable Redis PubSub.
+  Implement and wire a GraphQL server engine, the per-endpoint *GraphqlServerEngine class under
+  server/graphql/ that declares one endpoint's routing, Share and Context DI, auth filter,
+  middleware, scalars and error codes, and decide what the engine and its Share may hold and who
+  reads env. Use whenever the user asks to add a GraphQL endpoint (a role such as user / admin),
+  pair a stub engine with an actual one, change its auth policy or credential route, or enable Redis
+  PubSub.
 ---
 
 # GraphQL Server Engine
@@ -34,7 +34,7 @@ one of these settings — nothing more:
 | Setting | Member | Section |
 | --- | --- | --- |
 | Endpoint routing (URL, schema / resolver dirs, redis) | `static get config` | [§2](#2-static-get-config--the-endpoints-routing-declaration) |
-| Middleware (cors / json / static / upload / urlencoded) | `collectMiddleware()` | [§6](#6-middleware-scalars-error-codes) |
+| Middleware (cors through `ExpressMiddleware`, then json / static / upload / urlencoded) | `static get ExpressMiddleware` + `collectMiddleware()` | [§6](#6-middleware-scalars-error-codes) |
 | Share / Context DI classes | `static get Share` / `static get Context` | [§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver) |
 | Custom scalars | `collectScalars()` | [§6](#6-middleware-scalars-error-codes) |
 | Auth policy — the **no-auth (public) operations** + the filter | `schemasToSkipFiltering` + `generateFilterHandler()` | [§4](#4-authentication-schemastoskipfiltering--generatefilterhandler) |
@@ -58,9 +58,9 @@ the resolvers and the context; the engine just points at them.
   request. Anything stateful or per-request belongs in `Context` (per request) or `Share` (per
   process); anything domain-specific belongs in a resolver. An engine that starts doing work becomes
   a god object that every endpoint's behavior routes through.
-- **Extend the app base, override only what differs.** The shared middleware and error codes live in
+- **Extend the app base, override only what differs.** The shared middleware classes and error codes live in
   the app base ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)); a concrete engine should be
-  mostly `config` + `Share` + `Context` + auth policy.
+  mostly `config` + `Share` + `Context` + the public schemas and visa issuers.
 
 **Comment language**: the `js` examples in this SKILL.md use English comments (matching the framework
 files). In the **engine files you generate** (`*GraphqlServerEngine.js`), keep structural comments in
@@ -75,16 +75,25 @@ and overrides only what is endpoint-specific.**
 | Base | Where | Role |
 | --- | --- | --- |
 | `BaseGraphqlServerEngine` | `@openreachtech/renchan` | The **framework contract**: factory (`create` / `createAsync`), `buildErrorHash`, and the abstract members every engine fills in (`config`, `Share`, `Context`, `collectMiddleware`, `generateFilterHandler`, …). |
-| `BaseAppGraphqlServerEngine` | `server/graphql/BaseAppGraphqlServerEngine.js` | **This app's shared settings** — factor here anything common to every endpoint: the shared `collectMiddleware()` (cors / json / static / upload / urlencoded) and `standardErrorCodeHash`. |
+| `BaseAppGraphqlServerEngine` | `server/graphql/BaseAppGraphqlServerEngine.js` | **This app's shared settings** — factor here anything common to every endpoint, such as `standardErrorCodeHash`. |
 
-- **When a setting is the same for every endpoint, lift it into the app base.** Middleware and the
-  error-code hash are the usual ones. Each concrete engine then extends `BaseAppGraphqlServerEngine`
-  and declares only the parts that differ per endpoint — `config`, `Share`, `Context`, and the auth
-  policy. This keeps one source of truth for the shared config (Open Reach Tech's DRY / "carve once"
+- **Lift a member into the app base only when its logic is the same for every endpoint, always.**
+  Similar is not the same. Admin and customer declare different schemas, so
+  `schemasToSkipFiltering` stays in each engine, and `visaIssuers` stays because one role may
+  tighten its login checks later. `ExpressMiddleware` stays because each endpoint lists its own
+  CORS class. The error-code hash is the shared one.
+  `generateFilterHandler()` and `collectScalars()` read the same in every engine today, but
+  lifting them is a refactor of its own: a change that moves them goes in its own pull request,
+  never inside one with another purpose. Each concrete engine then extends
+  `BaseAppGraphqlServerEngine` and declares the rest — `config`, `Share`, `Context`, `ExpressMiddleware`,
+  `schemasToSkipFiltering`, `visaIssuers`, `generateFilterHandler()`, `collectScalars()` and
+  `collectMiddleware()`. This keeps one source of truth for the shared config (Open Reach Tech's DRY / "carve once"
   stance) and makes a new endpoint a short file.
-- **Only override a shared member to change it** for one endpoint — e.g. the user endpoint overrides
-  `collectMiddleware()` just to raise the body limit to `30mb` ([§6](#6-middleware-scalars-error-codes)).
-- Prefer having the app base hold the shared middleware + error codes and every engine — **stub** and
+- **`collectMiddleware()` stays in each engine**, though it reads the same everywhere. Its
+  `express.urlencoded` `verify` callback writes `req['rawBody']` under
+  `// eslint-disable-next-line no-param-reassign`, and the lint config allows that directive only in
+  the engine files ([§6](#6-middleware-scalars-error-codes)).
+- Prefer having the app base hold the shared middleware classes + error codes and every engine — **stub** and
   **actual** — extend it. If some engines still extend the framework base directly and repeat those
   members, migrate them to the app base when you next touch an engine so the shared settings live in
   one place.
@@ -94,15 +103,19 @@ and overrides only what is endpoint-specific.**
 import BaseAppGraphqlServerEngine from './BaseAppGraphqlServerEngine.js'
 import PartnerGraphqlShare from './contexts/PartnerGraphqlShare.js'
 import PartnerGraphqlContext from './contexts/PartnerGraphqlContext.js'
+import PartnerCorsExpressMiddleware from '../middleware/PartnerCorsExpressMiddleware.js'
 
 export default class PartnerGraphqlServerEngine extends BaseAppGraphqlServerEngine {
   /** @override */ static get config () { /* ... §2 ... */ }
+  /** @override */ static get ExpressMiddleware () { return [PartnerCorsExpressMiddleware] }
   /** @override */ get schemasToSkipFiltering () { /* ... §4 ... */ }
   /** @override */ generateFilterHandler () { /* ... §4 ... */ }
+  /** @override */ get visaIssuers () { /* ... §4 ... */ }
   /** @override */ static get Share () { return PartnerGraphqlShare }
   /** @override */ static get Context () { return PartnerGraphqlContext }
   /** @override */ async collectScalars () { /* ... §6 ... */ }
-  // collectMiddleware() / standardErrorCodeHash inherited from the app base
+  /** @override */ collectMiddleware () { /* ... §6 ... */ }
+  // standardErrorCodeHash inherited from the app base
 }
 ```
 
@@ -119,11 +132,11 @@ export default class PartnerGraphqlServerEngine extends BaseAppGraphqlServerEngi
 | `actualResolversPath` | Directory of the real resolvers (`.../resolvers/<role>/actual/`), or `null`. |
 | `stubResolversPath` | Directory of stub resolvers (`.../resolvers/<role>/stub/`), or `null`. |
 | `postWorkersPath` | Directory of post-workers, or `null` when unused ([§7](#7-post-resolve-hooks-defineonresolved--postworkerspath)). |
-| `redisOptions?` | Redis connection for subscription PubSub; omit / `null` → in-process `LocalPubSub` ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)). |
+| `redisOptions?` | Redis connection for subscription PubSub, read by the subscription broker. The engine leaves it out; the Share adds it from `env` when it creates the broker ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)). `null` → in-process `LocalPubSub` ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)). |
 
 ```js
-// Good: config is a pure routing declaration; paths via rootPath.to(), redis resolved in env
-import { rootPath, env } from '../../app/globals/_.js'
+// Good: config is a pure routing declaration with paths via rootPath.to(), and no env import
+import { rootPath } from '../../app/globals/_.js'
 
 /** @override */
 static get config () {
@@ -134,10 +147,20 @@ static get config () {
     actualResolversPath: rootPath.to('server/graphql/resolvers/customer/actual/'),
     stubResolversPath: rootPath.to('server/graphql/resolvers/customer/stub/'),
     postWorkersPath: rootPath.to('server/graphql/post-workers/customer/'),
-    redisOptions: {
-      host: env.REDIS_HOST,
-      port: env.REDIS_PORT,
-    },
+  }
+}
+```
+
+```js
+// Bad: the engine imports env to fill redisOptions
+import { rootPath, env } from '../../app/globals/_.js'
+
+/** @override */
+static get config () {
+  return {
+    graphqlEndpoint: '/graphql-customer',
+    // ...
+    redisOptions: env.redisOptions,
   }
 }
 ```
@@ -146,11 +169,13 @@ static get config () {
   never hand-built relative strings.
 - **`graphqlEndpoint` must be unique** across all engines (each maps to its own path + port in
   `server/index.js`, [§8](#8-wiring-into-serverindexjs)).
-- **Keep `config` a pure declaration — never put logic in the getter.** Resolve the redis connection
-  in the **`env` layer**: `env.redisOptions` returns `{ host, port }` on staging / live and `null` in
-  dev (no Redis), so the getter just references it. Dev then falls back to `LocalPubSub`; staging /
-  live opt in via environment. Do **not** branch inside `config` (`env.REDIS_HOST ? { … } : null`) —
-  a getter must return a value, not compute one.
+- **Keep `config` a pure declaration, and keep `env` out of the engine file.** Resolve the redis
+  connection in the **`env` layer**: `env.redisOptions` returns `{ host, port }` on staging / live
+  and `null` in dev (no Redis). The Share reads it and hands it to the broker
+  ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)), because the Share is the
+  only class that imports `env`. Dev then falls back to `LocalPubSub`; staging / live opt in via
+  environment. Do **not** branch on env inside `config` (`env.REDIS_HOST ? { ... } : null`): a
+  config holds no logic, because no test can reach logic there.
 
 ## 3. `Share` and `Context` — the DI the engine hands to every resolver
 
@@ -174,9 +199,292 @@ threads them into every resolver call.
 - **Each endpoint pairs its own Share + Context** (`Admin*` with `Admin*`); do not share one role's
   Context with another endpoint — the principal and permissions differ.
 - The Share / Context implementations themselves (findUser, visa issuing, extra clients) are their own
-  concern; this skill only wires them onto the engine. (See the `contexts/` classes such as
-  `AdminGraphqlContext.js` /
+  concern; this skill only wires them onto the engine, and says below where the Context reads the
+  credential. (See the `contexts/` classes such as `AdminGraphqlContext.js` /
   `AdminGraphqlShare.js`.)
+
+### The Context reads the credential from one route
+
+The Context reads the `x-renchan-access-token` header unless a derived class says otherwise. A cookie,
+a Bearer token, an IAP JWT or an HMAC signature replaces it by overriding
+`static extractAccessToken()`. The engine, the filter and the visa stay as they are, because the
+filter reads what `findUser()` resolved and never where the credential came from.
+
+```js
+// Good: the GraphQL signature takes requestParams as well as expressRequest
+/** @override */
+static extractAccessToken ({
+  expressRequest,
+  requestParams,
+}) {
+  const headers = expressRequest.headers
+    ?? this.extractHeadersFromRequestParams({
+      requestParams,
+    })
+
+  return AccessCredentialReader.readBearerToken({
+    headers,
+  })
+}
+```
+
+- **Keep the base's fallback.** The base reads `expressRequest.headers` and falls back to the headers in
+  the connection payload (`extractHeadersFromRequestParams()`) when the request has none. An override
+  that reads `expressRequest.headers` alone drops that fallback, and a request that relies on it
+  arrives with no credential.
+- **One override serves every read.** `context.accessToken` calls `extractAccessToken()` again, so no
+  second place needs the change.
+- **A context reads exactly one route.** The readers, `findUser()` for each route, and the CSRF and
+  replay rules are in `/hor-restfulapi-architecture` (its `credential-routes` reference), which
+  describes the REST context; the GraphQL context differs only in the signature above. An HMAC route
+  needs the raw bytes, and `collectMiddleware()` captures `rawBody` on `express.urlencoded` only, so
+  the engine's `express.json` takes the same `verify` callback ([§6](#6-middleware-scalars-error-codes)).
+
+### The Share hands the broker its Redis options
+
+The subscription broker reads `redisOptions` from the config it is created with. The Share reads
+`env` once in `.createAsync()` and overrides `.createBroker()` to pass that value along, so the
+engine's `config` never touches `env`. A job daemon follows the same rule by another route: its
+Share creates a `RedisConnection` (see `/hor-renchan-job-bullmq`).
+
+```js
+// Good: the Share reads env once and hands the broker its Redis options
+/** @override */
+static async createAsync ({
+  config,
+}) {
+  const env = this.generateEnv()
+  const broker = this.createBroker({
+    config,
+    env,
+  })
+
+  return this.create({
+    env,
+    broker,
+  })
+}
+
+/** @override */
+static createBroker ({
+  config,
+  env,
+}) {
+  return this.Broker.create({
+    config: {
+      ...config,
+      redisOptions: env.redisOptions,
+    },
+  })
+}
+```
+
+### What the engine, the Share and `env` may each hold
+
+- **The engine is a source of configuration and handlers; it generates nothing itself.** It keeps
+  `#share`, and other classes read what they need from the engine and generate their own values.
+  The engine has no logic method of its own for producing a value: no `.get:allowedOrigins` that
+  parses a string.
+- **A getter calls no method**: no `.create()` and no parse call inside a getter.
+  `.get:config` keeps its `rootPath.to()` paths as [§2](#2-static-get-config--the-endpoints-routing-declaration)
+  shows them.
+- **`Share` is the only class that imports `env`.** Every other class reads env through the Share
+  (`this.share.env`, or the engine's `#get:env`), or reads a value the Share built from it.
+  *Reason*: a test replaces env in one place, by handing the Share a mock env.
+- **`Share` is a ValueObject**: it shares created instances and holds no logic. Its static
+  factories (`.create()`, `.createAsync()`) only create instances through other classes' factory
+  methods, where a factory method wraps `new` for its own class (`AllowedCorsOriginCollection.create()`).
+  *Reason*: `Share` means "sharing created instances", so it does nothing by itself. The rest of the Share's shape belongs to `hor-resolver-share`.
+- **`Share` keeps no instance that needs only `env`.** It already keeps `env`, so the class that
+  uses such an instance creates it from `share.env` in its own body.
+- **A method name states what it returns, and a value class is a singular noun.** A `create~`
+  method returns an instance of a class and reads "create + singular noun":
+  `#createAllowedCorsOriginCollection()`. The class is `AllowedCorsOriginCollection`, never
+  `AllowedOrigins`. The verbs follow the method-name verbs of `hoc-naming`.
+
+| Verb | Returns | Example |
+| --- | --- | --- |
+| `create~` | an instance of a class | `#createAllowedCorsOriginCollection()` |
+| `generate~` | a primitive value it makes | `#generateCacheKey()` |
+| `build~` | a temporary object | `#buildOptionHash()` |
+| `extract~` | data pulled from a property | `#extractOrigins()` |
+
+The table governs the names the app writes. Names the framework defines and the app inherits,
+such as `.generateEnv()` and `#generateFilterHandler()`, stay as they are.
+
+#### Example: the allowed CORS origins
+
+```js
+// Good: a value class owns the parse
+// server/tools/AllowedCorsOriginCollection.js
+export default class AllowedCorsOriginCollection {
+  constructor ({
+    originsString,
+  }) {
+    this.originsString = originsString
+  }
+
+  static create ({
+    originsString,
+  }) {
+    return new this({
+      originsString,
+    })
+  }
+
+  extractOrigins () {
+    if (!this.originsString) {
+      return []
+    }
+
+    return this.originsString
+      .split(',')
+      .map(it => it.trim())
+      .filter(it => it.length > 0)
+  }
+}
+```
+
+The Share does not keep the collection. It already keeps `env`, and the collection needs nothing
+else, so the class that uses the collection creates it from `share.env` in its own body. That
+class is an `ExpressMiddleware`: it reads through one getter per hop, so no line reaches past
+its neighbour (the Law of Demeter). `BaseExpressMiddleware` holds the engine and gives
+`#get:share`; it ships in `@openreachtech/renchan` from `2.11.0`.
+
+```js
+// Good: the middleware creates the collection; a derived class names the env key
+// server/middleware/CorsExpressMiddleware.js
+import cors from 'cors'
+
+import {
+  BaseExpressMiddleware,
+} from '@openreachtech/renchan'
+
+import AllowedCorsOriginCollection from '../tools/AllowedCorsOriginCollection.js'
+
+export default class CorsExpressMiddleware extends BaseExpressMiddleware {
+  static get corsClient () {
+    return cors
+  }
+
+  get env () {
+    return this.share.env
+  }
+
+  /** @abstract */
+  get originsString () {
+    throw new Error(`101.X000.001 {"memberName":"${this.constructor.name}#get:originsString"}`)
+  }
+
+  /** @override */
+  composeMiddleware () {
+    return this.Ctor.corsClient(
+      this.buildOptionHash()
+    )
+  }
+
+  createAllowedCorsOriginCollection () {
+    return AllowedCorsOriginCollection.create({
+      originsString: this.originsString,
+    })
+  }
+
+  buildOptionHash () {
+    return {
+      origin: this.createAllowedCorsOriginCollection()
+        .extractOrigins(),
+    }
+  }
+}
+```
+
+Each endpoint reads its own key (`CORS_ADMIN_ORIGINS`, `CORS_CUSTOMER_ORIGINS`), and renchan
+offers no structure yet that picks a key by endpoint. So each endpoint takes a derived class
+that names its key and nothing else, and the engine lists that class.
+
+```js
+// Good: one derived class per endpoint, holding only its env key
+// server/middleware/AdminCorsExpressMiddleware.js
+export default class AdminCorsExpressMiddleware extends CorsExpressMiddleware {
+  /** @override */
+  get originsString () {
+    return this.env.CORS_ADMIN_ORIGINS
+  }
+}
+```
+
+```js
+// Good: each engine lists its own class; see §6 for how it is composed
+static get ExpressMiddleware () {
+  return [
+    AdminCorsExpressMiddleware,
+  ]
+}
+```
+
+```js
+// Bad: the Share keeps an instance it could leave to the class that uses it
+static createAllowedCorsOriginCollection ({
+  env,
+}) {
+  return AllowedCorsOriginCollection.create({
+    originsString: env.CORS_ADMIN_ORIGINS,
+  })
+}
+```
+
+```js
+// Bad: the engine reaches through its Share into the collection
+collectMiddleware () {
+  return [
+    cors({
+      origin: this.share.allowedCorsOriginCollection.extractOrigins(),
+    }),
+  ]
+}
+```
+
+```js
+// Bad: the engine names the env key of a middleware it does not own
+static get corsOriginsEnvKey () {
+  return 'CORS_ADMIN_ORIGINS'
+}
+```
+
+```js
+// Bad: the engine imports env and parses it inside a static getter
+import { env } from '../../app/globals/_.js'
+import AllowedOriginsParser from '../tools/AllowedOriginsParser.js'
+
+static get allowedOrigins () {
+  return AllowedOriginsParser.create({
+    originsString: env.CORS_CUSTOMER_ORIGINS,
+  })
+    .parseOrigins()
+}
+```
+
+```js
+// Bad: the Share runs the parse, and a create~ method returns an array
+static createAllowedOrigins ({
+  env,
+}) {
+  return AllowedOriginsParser.create({
+    originsString: env.CORS_CUSTOMER_ORIGINS,
+  })
+    .parseOrigins()
+}
+```
+
+Do not guard the parse with `originsString instanceof String`. A string read from env is a
+primitive and never an instance of `String`, so that guard drops every origin.
+
+```js
+// Bad: always true for a string primitive, so extractOrigins() returns [] for every value
+if (!(this.originsString instanceof String)) {
+  return []
+}
+```
 
 ## 4. Authentication: `schemasToSkipFiltering` + `generateFilterHandler`
 
@@ -260,7 +568,7 @@ Each role is served by **two** engines on **two ports**:
   (`return async () => {}`, `schemasToSkipFiltering: []`). It exists so the frontend can develop
   against canned data. **Auth-off is acceptable only because a stub serves fake data on a separate
   port** — never ship a stub engine's config on a real endpoint.
-- **Subscriptions PubSub**: when `config.redisOptions` is set, progress/subscription events go through
+- **Subscriptions PubSub**: when the Share hands the broker `redisOptions` ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)), progress/subscription events go through
   **Redis PubSub** (required when a separate process — e.g. the job daemon — publishes to
   subscribers, see `hor-renchan-job-bullmq` §4). When it is `null`, the
   engine uses an in-process `LocalPubSub` — fine for dev and single-process endpoints. Enable Redis on
@@ -270,10 +578,15 @@ Each role is served by **two** engines on **two ports**:
 
 The remaining overrides are cross-cutting endpoint policy:
 
-- **`collectMiddleware()`** → the Express middleware array (cors, `express.json({ limit })`,
-  `express.static`, the upload middleware, `express.urlencoded` capturing `rawBody`). Inherit it from
-  the app base; only override to change a limit (e.g. the user endpoint raises the body limit to
-  `30mb` for uploads).
+- **`static get ExpressMiddleware`** → the `BaseExpressMiddleware` classes this endpoint mounts
+  (its own `CorsExpressMiddleware` derived class, [§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
+  `#composeExpressMiddleware()` creates each one with the engine and returns what its
+  `#composeMiddleware()` builds.
+- **`collectMiddleware()`** → the Express middleware array: what `#composeExpressMiddleware()`
+  returns, then `express.json({ limit })`, `express.static`, the upload middleware and
+  `express.urlencoded` capturing `rawBody`. Each engine declares it, since the lint exception its
+  `verify` callback needs covers only the engine files
+  ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)).
 - **`async collectScalars()`** → the custom GraphQL scalars this endpoint exposes
   (`DateTimeScalar`, `BigNumberScalar`). Return only what the schema uses.
 - **`static get standardErrorCodeHash`** → maps the framework error names (`Unauthenticated`,
@@ -284,18 +597,34 @@ The remaining overrides are cross-cutting endpoint policy:
   production and maps them to `errorHash` codes in production — do not disable error mapping in prod.
 
 ```js
-// Good: only override middleware to change a limit; otherwise inherit from the app base
+// Good: each engine declares its middleware, CORS first through ExpressMiddleware
 /** @override */
 collectMiddleware () {
+  const composedExpressMiddleware = this.composeExpressMiddleware()
+
   return [
-    cors({ origin: '*' }),
-    express.json({ limit: '30mb' }), // this endpoint accepts large uploads
+    ...composedExpressMiddleware,
+    express.json({
+      limit: '10mb',
+      verify: (req, res, body) => {
+        // eslint-disable-next-line no-param-reassign
+        req['rawBody'] = body
+      },
+    }),
     express.static(this.config.staticPath),
     graphqlUploadExpressWithResolvingContentType({ maxFileSize: 10000000, maxFiles: 10 }),
-    express.urlencoded({ extended: true, verify: (req, res, body) => { req['rawBody'] = body.toString() } }),
+    express.urlencoded({
+      extended: true,
+      verify: (req, res, body) => {
+        // eslint-disable-next-line no-param-reassign
+        req['rawBody'] = body
+      },
+    }),
   ]
 }
 ```
+
+Both `verify` callbacks keep `rawBody` as the `Buffer` they receive, because an HMAC check has to run over the exact bytes the caller signed and `toString()` can alter them.
 
 ## 7. Post-resolve hooks: `defineOnResolved` + `postWorkersPath`
 
@@ -345,10 +674,13 @@ An endpoint → port layout looks like this (roles, paths, and ports are illustr
 
 ## Finishing checklist
 
-- [ ] One engine per endpoint, extending the **app base** ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)); no duplicated middleware / error hash unless the endpoint truly differs.
+- [ ] One engine per endpoint, extending the **app base** ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)); a member moves to the app base only when it is always the same for every endpoint, and `collectMiddleware()` stays in each engine.
 - [ ] The engine is **declaration + wiring only** — no DB queries, no response building, no per-request state in the engine.
-- [ ] `config` has a **unique `graphqlEndpoint`**, `rootPath.to(...)` paths for schema / resolvers, and `redisOptions` from `env` (or `null`) ([§2](#2-static-get-config--the-endpoints-routing-declaration)).
+- [ ] `config` has a **unique `graphqlEndpoint`**, `rootPath.to(...)` paths for schema / resolvers, and no `env` import; the Share supplies `redisOptions` from `env` (or `null`) ([§2](#2-static-get-config--the-endpoints-routing-declaration)).
 - [ ] `static get Share` / `static get Context` name **this role's own** Share + Context ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
+- [ ] The engine generates no value of its own, and no getter calls a method; values come from classes the Share creates ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
+- [ ] CORS mounts through the endpoint's own `CorsExpressMiddleware` derived class, the Share keeps no CORS collection, and `collectMiddleware()` never reaches through the Share ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
+- [ ] Only the Share imports `env`; the Share holds created instances and runs no logic, and each `create~` method returns an instance of a singular-noun class ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)).
 - [ ] `schemasToSkipFiltering` lists **only genuinely public** operations; the filter runs the four-step visa gate; **no real work** in the filter ([§4](#4-authentication-schemastoskipfiltering--generatefilterhandler)).
 - [ ] A **stub** engine (if added) points `actualResolversPath` at the stub dir and uses a **noop** filter — and never leaks that config onto a real endpoint ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)).
 - [ ] Redis PubSub enabled on endpoints whose subscriptions are published by **another process** ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)).
