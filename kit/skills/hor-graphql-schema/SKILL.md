@@ -317,13 +317,13 @@ enum SortDirection { ASC DESC }
 Defining a type in the SDL is **only half the job** — declare the matching TypeScript
 interface in the one file `types/graphql.d.ts` in the same change, under the audience's
 namespace. Resolvers reference these via JSDoc
-(`@param {{ input: server.graphql.customer.CancelOrderInput }}`,
-`@returns {Promise<server.graphql.customer.OrdersResult>}`), so a type present in
+(`@param {{ input: graphql.customer.CancelOrderInput }}`,
+`@returns {Promise<graphql.customer.OrdersResult>}`), so a type present in
 the SDL but missing from `types/graphql.d.ts` fails type-check.
 
 ```typescript
 declare global {
-  namespace server.graphql.customer {
+  namespace graphql.customer {
     interface CancelOrderInput {
       orderId: number
     }
