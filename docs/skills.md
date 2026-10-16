@@ -40,7 +40,7 @@ Each skill lives at `kit/skills/<name>/`, directly under the skills directory, a
 
 | Skill | Summary |
 | :-- | :-- |
-| `hor-cookie-authentication` | Cookie-based authentication for a renchan backend, per actor — the credential and token models, access plus rotating refresh tokens with reuse detection, the HttpOnly refresh cookie, and the signIn / signUp / signOut / renewAccessToken resolvers. |
+| `hor-cookie-authentication` | Password sign-in with cookie-based sessions for a renchan backend, per actor: the credential and token models, access plus rotating refresh tokens with reuse detection, the HttpOnly refresh cookie, and the signIn / signUp / signOut / renewAccessToken resolvers. |
 | `hor-oidc-sign-in` | Sign an actor in through an external OpenID Connect provider: the authorization code flow with PKCE, state and nonce, ID token verification, and linking the provider's subject to an actor before the session opens. |
 
 ### Execution placement
