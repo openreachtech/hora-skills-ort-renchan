@@ -3,9 +3,10 @@ name: hor-restfulapi-architecture
 description: >
   Understand and build the RESTful API layer of a renchan-style backend: the renderer architecture
   under server/restfulapi/. Use whenever the user asks how the REST API is structured, where an
-  endpoint lives, or how to add or edit one: a Renderer per HTTP method, its route and version,
-  render(), the response and error hashes, the per-request context and share, the auth filter,
-  flushers, the credential a request carries (cookie, Bearer, IAP JWT, HMAC), and an app behind IAP.
+  endpoint lives, or how to add or edit one: a Renderer per HTTP method, its route, version and
+  server directory, render(), the response and error hashes, the per-request context and share, the
+  auth filter, flushers, the credential a request carries (cookie, Bearer, IAP JWT, HMAC), and an
+  app behind IAP.
 ---
 
 # RESTful API Architecture
@@ -125,6 +126,23 @@ server/restfulapi/
 - **The route is `pathPrefix + routePath`, method = the renderer's `method`.** The framework
   discovers every renderer under `renderersPath`, reads its `routePath` and `method`, and registers
   the express route — you never wire routes by hand.
+
+- **Several RESTful API servers: one directory per server.** When a project runs more than one
+  server (for example one public and one reachable only inside a VPN), each server's routes live
+  under `renderers/<server>/v1/`, and each server's engine points `renderersPath` at its own
+  `renderers/<server>/v1/`. A single `renderers/v1/` shared by two engines would mount every route
+  on both servers, so the VPN-only routes would answer on the public one. A project with one
+  server keeps `renderers/v1/`.
+
+```
+server/restfulapi/renderers/
+  public/
+    v1/
+      get/   <Name>Renderer.js
+  vpn/
+    v1/
+      get/   <Name>Renderer.js
+```
 
 Detail in [renderers.md](./references/renderers.md).
 

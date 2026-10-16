@@ -312,14 +312,14 @@ enum SortDirection {
 enum SortDirection { ASC DESC }
 ```
 
-## 9. Mirror every SDL type into `types/<Audience>GraphQL.d.ts`
+## 9. Mirror every SDL type into `types/graphql.d.ts`
 
 Defining a type in the SDL is **only half the job** — declare the matching TypeScript
-interface in the audience's `types/<Audience>GraphQL.d.ts` in the same change. Resolvers
-reference these via JSDoc
+interface in the one file `types/graphql.d.ts` in the same change, under the audience's
+namespace. Resolvers reference these via JSDoc
 (`@param {{ input: server.graphql.customer.CancelOrderInput }}`,
 `@returns {Promise<server.graphql.customer.OrdersResult>}`), so a type present in
-the SDL but missing from the `.d.ts` fails type-check.
+the SDL but missing from `types/graphql.d.ts` fails type-check.
 
 ```typescript
 declare global {
@@ -336,6 +336,8 @@ declare global {
 ```
 
 - Name the interfaces exactly `<Operation>Input` / `<Operation>Result`.
+- Every audience shares that one file, each in its own namespace block, so a type is never declared
+  in another audience's block.
 - Keep fields in sync field-for-field: GraphQL `!` → required property, nullable → `?`.
 
 ## 10. Match the surrounding file's style
@@ -356,5 +358,5 @@ uses**, including any stated ordering rule.
 - [ ] Is `!` the default, with every nullable field genuinely optional (and commented why)? Lists `[T!]!` unless the whole list is optional?
 - [ ] Are money/decimal fields `String!` (emitted via `toFixed(2)`), with `BigNumber` reserved for non-money large integers?
 - [ ] Do list operations use the audience's `Pagination` / `PaginationInput` shape (nullable `sort`, non-null `limit`/`offset`/`totalRecords`)?
-- [ ] Did you mirror every added/changed SDL type into `types/<Audience>GraphQL.d.ts`, field-for-field, in the same change?
+- [ ] Did you mirror every added/changed SDL type into `types/graphql.d.ts`, field-for-field, in the same change?
 - [ ] Did you match the surrounding file's banner style and any stated ordering rule?
