@@ -164,7 +164,20 @@ A UNIQUE index rejects what the column's collation calls equal. On MariaDB and M
 collation, `Taro` and `taro` are duplicates, and the second insert fails. PostgreSQL compares
 case-sensitively by default, so both rows fit and a case-insensitive natural key (an email, a login
 name) is not enforced. On PostgreSQL, normalize the value to lower case before it is saved, or
-index `lower(<column>)`, instead of relying on the collation.
+index `lower(<column>)`, instead of relying on the collation. `addIndex` may not accept an
+expression, so write the index as raw SQL, guarded for PostgreSQL:
+
+```js
+const INDEX_NAME = 'customers_email_lower_unique'
+
+if (queryInterface.sequelize.getDialect() === 'postgres') {
+  await queryInterface.sequelize.query(
+    `CREATE UNIQUE INDEX ${INDEX_NAME} ON ${queryInterface.quoteIdentifier(TABLE_NAME)} (lower(email))`
+  )
+}
+```
+
+`down` runs `DROP INDEX IF EXISTS ${INDEX_NAME}` under the same guard.
 
 ## A UNIQUE named index is "the real constraint"
 

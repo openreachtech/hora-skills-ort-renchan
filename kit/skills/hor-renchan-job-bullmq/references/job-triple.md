@@ -238,6 +238,9 @@ const response = await dispatcher.dispatchJob({
   in.
 - Build the `id` from what makes two requests the same (the session token above), and keep it stable
   across calls.
-- Prefer it over a custom `jobId`. BullMQ rejects a custom `jobId` that contains `:`, and a custom
+- The `deduplication` option is supported in the BullMQ 5 line that `@openreachtech/renchan-job-bullmq`
+  depends on (`^5.76.10`). The first 5.x release that carries it is unconfirmed.
+- Prefer it over a custom `jobId`. BullMQ rejects a custom `jobId` that contains `:` or that is
+  integer-like (`'123'`), and a custom
   `jobId` keeps blocking the same id for as long as the finished job stays in Redis (that is,
   until `removeOnComplete` / `removeOnFail` removes it), so a retry of the work cannot be enqueued.
