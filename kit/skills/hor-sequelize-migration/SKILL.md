@@ -268,9 +268,13 @@ the `addIndex` `name`. Details and a table of real abbreviations are in
 Add a column to an existing table with `addColumn`, and drop the same column symmetrically in
 `down`. The filename is `{timestamp}-{seq}-alter_table-<table>-<column>.cjs`.
 
-- **Do not use `removeColumn` to drop a column.** Sequelize's `removeColumn` does not work on
-  MariaDB (live), so run raw SQL `ALTER TABLE ... DROP COLUMN` via `queryInterface.sequelize.query`
-  (in `up` or `down`; quote identifiers with backticks).
+- **On MariaDB, do not use `removeColumn` to drop a column.** Sequelize's `removeColumn` does not
+  work on MariaDB, so when MariaDB is the live database run raw SQL `ALTER TABLE ... DROP COLUMN`
+  via `queryInterface.sequelize.query` (in `up` or `down`). Quote each identifier with
+  `queryInterface.quoteIdentifier()`, which writes backticks on MariaDB, MySQL and SQLite and
+  double quotes on PostgreSQL; a hand-written backtick is a syntax error on PostgreSQL.
+- **On PostgreSQL (and SQLite), `queryInterface.removeColumn` works.** A project whose databases
+  are only those two drops a column with `removeColumn` and writes no raw SQL.
 - `up` / `down` are **symmetric** (drop in `down` what `up` added). Column adds can be grouped with
   `Promise.all`, but drops are run as one raw statement per column, sequentially.
 - Put a `/* ... */` block at the top of the file describing the **intent** (ticket number, spec
@@ -305,8 +309,8 @@ module.exports = {
   ) {
     // removeColumn does not work on MariaDB, so drop via raw SQL DROP COLUMN.
     await queryInterface.sequelize.query(`
-      ALTER TABLE \`${TABLE_NAME}\`
-      DROP COLUMN \`${COLUMN_NAME}\`
+      ALTER TABLE ${queryInterface.quoteIdentifier(TABLE_NAME)}
+      DROP COLUMN ${queryInterface.quoteIdentifier(COLUMN_NAME)}
     `)
   },
 }
@@ -333,4 +337,5 @@ scripts:
 - [indexes.md](./references/indexes.md) — index naming, UNIQUE, `Promise.all`, composite indexes,
   the shortening algorithm for long names with a table of real examples (§4)
 - [alter-table.md](./references/alter-table.md) — `addColumn`, dropping a column with raw
-  `DROP COLUMN` (because `removeColumn` fails on MariaDB), symmetric up/down, intent comment (§5)
+  `DROP COLUMN` on MariaDB (because `removeColumn` fails there) and with `removeColumn` on
+  PostgreSQL, identifier quoting, symmetric up/down, intent comment (§5)

@@ -4,15 +4,21 @@ How to write migrations that add or remove columns on an existing table. Referen
 `SKILL.md`. The column type / `field` / `allowNull` notation is shared with
 [notation.md](./notation.md).
 
-## Add with addColumn, drop with raw SQL DROP COLUMN (symmetric up/down)
+## Add with addColumn, drop with raw SQL DROP COLUMN on MariaDB (symmetric up/down)
 
 `addColumn` in `up`, and drop the same column in `down` to keep them symmetric. The filename is
 `{timestamp}-{seq}-alter_table-<table>-<column>.cjs`.
 
-**Do not use `removeColumn` to drop a column.** Sequelize's `removeColumn` does not work correctly
-on MariaDB (live), so drop a column — in `up` or `down` — with raw SQL
-`ALTER TABLE ... DROP COLUMN` via `queryInterface.sequelize.query`. Quote identifiers with backticks
-(valid on both SQLite and MariaDB).
+**On MariaDB, do not use `removeColumn` to drop a column.** Sequelize's `removeColumn` does not work
+correctly on MariaDB, so when MariaDB is the live database, drop a column (in `up` or `down`) with
+raw SQL `ALTER TABLE ... DROP COLUMN` via `queryInterface.sequelize.query`. Quote every identifier
+with `queryInterface.quoteIdentifier()`, never with a hand-written backtick (see
+[Quoting identifiers](#quoting-identifiers-in-raw-sql)).
+
+**On PostgreSQL (and SQLite), `queryInterface.removeColumn` works.** A project whose databases are
+only those two drops a column with `removeColumn(TABLE_NAME, COLUMN_NAME)` in `up` or `down` and
+writes no raw SQL. The raw form below stays the one to write whenever MariaDB is among the
+databases, because it runs unchanged on all of them.
 
 ```js
 'use strict'
@@ -43,8 +49,8 @@ module.exports = {
   ) {
     // removeColumn does not work on MariaDB, so drop via raw SQL DROP COLUMN.
     await queryInterface.sequelize.query(`
-      ALTER TABLE \`${TABLE_NAME}\`
-      DROP COLUMN \`${COLUMN_NAME}\`
+      ALTER TABLE ${queryInterface.quoteIdentifier(TABLE_NAME)}
+      DROP COLUMN ${queryInterface.quoteIdentifier(COLUMN_NAME)}
     `)
   },
 }
@@ -56,6 +62,13 @@ module.exports = {
 - **Why (raw SQL)**: `queryInterface.removeColumn` does not work correctly on MariaDB. To stay
   dialect-independent, run `ALTER TABLE ... DROP COLUMN` directly. The add side (`addColumn`) is
   fine, so keep using it.
+
+### Quoting identifiers in raw SQL
+
+`queryInterface.quoteIdentifier(name)` returns the name quoted the way the connected dialect
+expects: backticks on MariaDB, MySQL and SQLite, double quotes on PostgreSQL. A hand-written
+backtick runs on the first three and is a syntax error on PostgreSQL, so a migration that has a
+backtick in it cannot be moved to PostgreSQL without being rewritten.
 
 ## Write an intent comment (`/* ... */`) at the top
 
@@ -111,16 +124,16 @@ module.exports = {
   ) {
     // removeColumn does not work on MariaDB, so drop per column with raw SQL DROP COLUMN.
     await queryInterface.sequelize.query(`
-      ALTER TABLE \`${TABLE_NAME}\`
-      DROP COLUMN \`${COLUMN_NAME.WIZARD_ANSWERS_JSON}\`
+      ALTER TABLE ${queryInterface.quoteIdentifier(TABLE_NAME)}
+      DROP COLUMN ${queryInterface.quoteIdentifier(COLUMN_NAME.WIZARD_ANSWERS_JSON)}
     `)
     await queryInterface.sequelize.query(`
-      ALTER TABLE \`${TABLE_NAME}\`
-      DROP COLUMN \`${COLUMN_NAME.WIZARD_TEMPLATE_ID}\`
+      ALTER TABLE ${queryInterface.quoteIdentifier(TABLE_NAME)}
+      DROP COLUMN ${queryInterface.quoteIdentifier(COLUMN_NAME.WIZARD_TEMPLATE_ID)}
     `)
     await queryInterface.sequelize.query(`
-      ALTER TABLE \`${TABLE_NAME}\`
-      DROP COLUMN \`${COLUMN_NAME.WIZARD_TEMPLATE_VERSION}\`
+      ALTER TABLE ${queryInterface.quoteIdentifier(TABLE_NAME)}
+      DROP COLUMN ${queryInterface.quoteIdentifier(COLUMN_NAME.WIZARD_TEMPLATE_VERSION)}
     `)
 
     return Promise.resolve()
