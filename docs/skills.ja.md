@@ -34,7 +34,7 @@
 
 | スキル | 概要 |
 | :-- | :-- |
-| `hor-restfulapi-architecture` | renchan バックエンドの REST 層。`server/restfulapi/` 配下のレンダラーアーキテクチャ、ルートとバージョン、`render()`、レスポンス/エラーハッシュ、認証フィルタ、フラッシャー。 |
+| `hor-restfulapi-architecture` | renchan バックエンドの REST 層。`server/restfulapi/` 配下のレンダラーアーキテクチャ、ルートとバージョン、`render()`、レスポンス/エラーハッシュ、認証フィルタ、フラッシャー、リクエストが運ぶ認証情報の読み取り(Cookie、Bearer、IAP JWT、HMAC)、IAP の背後で動くアプリケーション。 |
 
 ### 認証
 
