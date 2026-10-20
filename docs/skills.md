@@ -22,7 +22,7 @@ Each skill lives at `kit/skills/<name>/`, directly under the skills directory, a
 | Skill | Summary |
 | :-- | :-- |
 | `hor-graphql-schema` | Author GraphQL SDL files for a renchan server — per-audience schemas, numbered per-domain files, custom scalars, and naming, nullability, enum and pagination conventions. |
-| `hor-graphql-server-engine` | Implement a per-endpoint `*GraphqlServerEngine`: its URL, schema path, resolver directories, Share/Context DI, auth filter, middleware, scalars and error codes. |
+| `hor-graphql-server-engine` | Implement a per-endpoint `*GraphqlServerEngine`: its URL, schema path, resolver directories, Share/Context DI, auth filter, middleware, scalars, error codes and WebSocket server limits. |
 | `hor-query-resolver` | Write GraphQL Query resolvers extending `BaseQueryResolver` — pagination, association includes, domain-error throwing, and the actual-vs-stub pair. |
 | `hor-mutation-resolver` | Implement GraphQL Mutation resolvers extending `BaseMutationResolver` — state-changing operations and the single transaction each runs in. |
 | `hor-subscription-resolver` | Implement a GraphQL subscription resolver — declare the operation, scope its channel per subscriber, gate who may subscribe, and wire the publish side. |
