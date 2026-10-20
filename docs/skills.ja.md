@@ -22,7 +22,7 @@
 | スキル | 概要 |
 | :-- | :-- |
 | `hor-graphql-schema` | renchan サーバの GraphQL SDL(`.graphql`)を書きます。オーディエンス別スキーマ、ドメイン別の番号付きファイル、カスタムスカラー、命名・null 許容・enum・ページネーションの規約。 |
-| `hor-graphql-server-engine` | エンドポイントごとの `*GraphqlServerEngine` を実装・起動します。URL、スキーマパス、リゾルバディレクトリ、Share/Context の DI、認証フィルタ、ミドルウェア、スカラー、エラーコード。 |
+| `hor-graphql-server-engine` | エンドポイントごとの `*GraphqlServerEngine` を実装・起動します。URL、スキーマパス、リゾルバディレクトリ、Share/Context の DI、認証フィルタ、ミドルウェア、スカラー、エラーコード、WebSocket サーバーの制限。 |
 | `hor-query-resolver` | `BaseQueryResolver` を継承した GraphQL Query リゾルバを書きます。ページネーション、関連の include、ドメインエラーの throw、actual と stub のペア。 |
 | `hor-mutation-resolver` | `BaseMutationResolver` を継承した GraphQL Mutation リゾルバを実装します。状態を変更する操作と、それが動く単一トランザクション。 |
 | `hor-subscription-resolver` | GraphQL subscription リゾルバを実装します。操作の宣言、購読者ごとのチャンネルのスコープ、購読可否のゲート、イベントを push する publish 側の配線。 |
