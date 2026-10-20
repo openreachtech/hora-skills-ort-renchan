@@ -3,10 +3,9 @@ name: hor-graphql-server-engine
 description: >
   Implement and wire a GraphQL server engine, the per-endpoint *GraphqlServerEngine class under
   server/graphql/ that declares one endpoint's routing, Share and Context DI, auth filter,
-  middleware, scalars and error codes, and decide what the engine and its Share may hold and who
-  reads env. Use whenever the user asks to add a GraphQL endpoint (a role such as user / admin),
-  pair a stub engine with an actual one, change its auth policy or credential route, or enable Redis
-  PubSub.
+  middleware, scalars, error codes and WebSocket server, and decide what the engine and its Share
+  may hold and who reads env. Use whenever the user adds a GraphQL endpoint, pairs a stub engine,
+  changes its auth policy or credential route, enables Redis PubSub, or limits its WebSocket server.
 ---
 
 # GraphQL Server Engine
@@ -14,7 +13,8 @@ description: >
 A skill for the **`*GraphqlServerEngine` classes under `server/graphql/`**. An engine is the one
 object that **wires a single GraphQL endpoint**: its URL and port, which schema and resolver
 directories to load, the Share / Context dependency-injection classes, the authentication filter,
-the Express middleware, the custom scalars, and the error-code hash. `server/index.js` then boots
+the Express middleware, the custom scalars, the error-code hash, and the WebSocket server's hooks and
+switches. `server/index.js` then boots
 **one HTTP server per engine** through `GraphqlServerBuilder`.
 
 The engine sits *above* the pieces other skills build: resolvers (`hor-resolver-validator`
@@ -39,6 +39,7 @@ one of these settings — nothing more:
 | Custom scalars | `collectScalars()` | [§6](#6-middleware-scalars-error-codes) |
 | Auth policy — the **no-auth (public) operations** + the filter | `schemasToSkipFiltering` + `generateFilterHandler()` | [§4](#4-authentication-schemastoskipfiltering--generatefilterhandler) |
 | Shared error codes | `standardErrorCodeHash` | [§6](#6-middleware-scalars-error-codes) |
+| WebSocket server (`graphql-ws` hooks, skip switch, `ConnectionInit` timeout) | `composeServerHookHash()` + `config.graphqlServer` | [§9](#9-the-websocket-server-composeserverhookhash--graphqlserver) |
 
 **App-common settings are not repeated per engine** — they are lifted into an **app base class**
 (`BaseAppGraphqlServerEngine`) that every engine extends ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)).
@@ -132,6 +133,7 @@ export default class PartnerGraphqlServerEngine extends BaseAppGraphqlServerEngi
 | `actualResolversPath` | Directory of the real resolvers (`.../resolvers/<role>/actual/`), or `null`. |
 | `stubResolversPath` | Directory of stub resolvers (`.../resolvers/<role>/stub/`), or `null`. |
 | `postWorkersPath` | Directory of post-workers, or `null` when unused ([§7](#7-post-resolve-hooks-defineonresolved--postworkerspath)). |
+| `graphqlServer?` | Settings of the WebSocket server mounted on the endpoint: `skipsWebSocket` and `connectionInitWaitTimeout` ([§9](#9-the-websocket-server-composeserverhookhash--graphqlserver)). |
 | `redisOptions?` | Redis connection for subscription PubSub, read by the subscription broker. The engine leaves it out; the Share adds it from `env` when it creates the broker ([§3](#3-share-and-context--the-di-the-engine-hands-to-every-resolver)). `null` → in-process `LocalPubSub` ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)). |
 
 ```js
@@ -672,6 +674,169 @@ An endpoint → port layout looks like this (roles, paths, and ports are illustr
   as a REST server).
 - Pair the actual engine with its stub engine here too (both get their own `createAsync` + `listen`).
 
+## 9. The WebSocket server: `composeServerHookHash()` + `graphqlServer`
+
+`GraphqlServerBuilder` mounts a `graphql-ws` server on the endpoint's `graphqlEndpoint` path, next to
+the HTTP handler. The engine shapes it through two members, from `@openreachtech/renchan` `2.12.0`.
+A WebSocket connection never passes through the Express middleware of
+[§6](#6-middleware-scalars-error-codes), so a rule that lives there (a sign-in rate limit, a CORS
+check) does not see an operation that arrives over the socket.
+
+| Member | Kind | What it decides |
+| --- | --- | --- |
+| `composeServerHookHash()` | instance method | The `graphql-ws` server hooks (`onConnect`, `onSubscribe`, `onClose`, ...). Default `{}`. Type `GraphqlType.WebSocketServerHookHash`. |
+| `config.graphqlServer.skipsWebSocket` | boolean | `true` leaves the WebSocket server unmounted. Default `false`. |
+| `config.graphqlServer.connectionInitWaitTimeout` | number (ms) | How long the server waits for `ConnectionInit` after a connection opens. A positive finite number only; anything else (omitted, `null`, `0`, `Infinity`, `NaN`, a string) leaves the `graphql-ws` default of 3000. |
+
+- **A switch goes in `config`, and a hook never overrides what the builder wires.** The builder drops
+  these keys from whatever `composeServerHookHash()` returns: `execute`, `subscribe`, `context`,
+  `schema`, `roots`, `validate`, `connectionInitWaitTimeout`, `jsonMessageReviver` and
+  `jsonMessageReplacer`. The type omits the same keys, and the builder ignores one that slips
+  through. Set the wait through `config`, never through the hash.
+- **`0` and `Infinity` do not turn the wait off.** `graphql-ws` itself treats them as "do not wait",
+  but the builder resolves them to its default, so an endpoint always waits for `ConnectionInit`.
+- **Skip the server on an endpoint that serves no subscription.** An endpoint whose schema has no
+  `Subscription` type, such as a role that only queries and mutates, mounts a WebSocket server
+  nobody needs, and an open door is attack surface. `skipsWebSocket: true` is the switch; do not
+  emulate it with a hook that refuses everything.
+- **`composeServerHookHash()` is a method, so it may build the hash.** The getter rule of
+  [§3](#what-the-engine-the-share-and-env-may-each-hold) holds: a getter calls no method. The method
+  returns hook functions that decide allow or deny and nothing else, like `generateFilterHandler()`
+  ([§4](#4-authentication-schemastoskipfiltering--generatefilterhandler)). Anything that needs `env`
+  reads it through `this.share.env`, because only the Share imports `env`.
+- **Refuse an operation by returning `GraphQLError`s from `onSubscribe`.** Return `void` to let the
+  operation go on. Return an array of at least one `GraphQLError` (from `graphql`) to refuse it:
+  `graphql-ws` sends the client an error message for that operation and the socket stays open.
+  An error from `this.errorHash` does not qualify, because it extends `Error` and is not a
+  `GraphQLError`.
+- **Never return `ExecutionArgs` from `onSubscribe`.** It skips the builder's validation, so the
+  endpoint's own validation rules stop applying to that operation.
+- **Throwing from `onSubscribe` closes the whole socket.** `parse()` throws on a syntax error, so the
+  example below ends the connection on a malformed query, as `graphql-ws` does when no hook is set.
+
+```js
+// Good: a WebSocket carries subscriptions only; a query or a mutation must go through HTTP
+import {
+  GraphQLError,
+  getOperationAST,
+  parse,
+} from 'graphql'
+
+/** @override */
+composeServerHookHash () {
+  return {
+    onSubscribe: (context, message) => {
+      const operationAst = getOperationAST(
+        parse(message.payload.query),
+        message.payload.operationName
+      )
+
+      if (operationAst?.operation === 'subscription') {
+        return undefined
+      }
+
+      return [
+        new GraphQLError('Only a subscription is accepted over WebSocket.'),
+      ]
+    },
+  }
+}
+```
+
+An operation the hook refuses never reaches a resolver, so a sign-in mutation sent over the socket
+cannot dodge the sign-in rate limit that the Express middleware applies over HTTP. The check fails
+closed: anything other than a subscription, including an operation the AST cannot identify
+(`operationAst` is `null`), is refused.
+
+### Check the `Origin` of a WebSocket connection in `onConnect`
+
+The CORS middleware of [§3](#what-the-engine-the-share-and-env-may-each-hold) never sees the
+WebSocket handshake either, so a page on any origin can open a socket to the endpoint. `onConnect`
+runs when the client sends `ConnectionInit`: `graphql-ws` allows the connection when it returns
+`true` (or nothing), and closes the socket with `4403: Forbidden` when it returns `false`. With the
+`ws` server, `context.extra.request` is the handshake `IncomingMessage`, so the origin is
+`context.extra.request.headers.origin`.
+
+The allowed origins already live in the endpoint's `CorsExpressMiddleware` derived class, which
+reads its env key through `this.share.env`. Give that class the one predicate the hook needs, and
+create the class in the engine with `Ctor.create({ engine: this })`, as
+`composeExpressMiddleware()` does. The engine then imports no `env`, parses nothing and keeps one
+list of origins for HTTP and WebSocket.
+
+```js
+// Good: the middleware class owns the origin list, so the hook only asks it
+// server/middleware/CorsExpressMiddleware.js
+allowsOrigin ({
+  origin,
+}) {
+  return this.createAllowedCorsOriginCollection()
+    .extractOrigins()
+    .includes(origin)
+}
+```
+
+```js
+// Good: the engine composes the hook; a missing or foreign Origin is refused with 4403
+import AdminCorsExpressMiddleware from '../middleware/AdminCorsExpressMiddleware.js'
+
+/** @override */
+composeServerHookHash () {
+  const corsExpressMiddleware = AdminCorsExpressMiddleware.create({
+    engine: this,
+  })
+
+  return {
+    onConnect: context => corsExpressMiddleware.allowsOrigin({
+      origin: context.extra.request.headers.origin,
+    }),
+  }
+}
+```
+
+- **A browser always sends `Origin` on a WebSocket handshake; a script or a server client sends none.**
+  The hook above refuses a connection with no `Origin`. An endpoint that serves such a client
+  decides that case on purpose, never by loosening the list.
+- **`onConnect` and `onSubscribe` live in the same hash.** Return both from one
+  `composeServerHookHash()`.
+
+```js
+// Good: a switch is a config value
+/** @override */
+static get config () {
+  return {
+    graphqlEndpoint: '/graphql-admin',
+    // ...
+    graphqlServer: {
+      skipsWebSocket: false,
+      connectionInitWaitTimeout: 5000,
+    },
+  }
+}
+```
+
+```js
+// Bad: the wait is a config value, so the builder drops it from the hash
+/** @override */
+composeServerHookHash () {
+  return {
+    connectionInitWaitTimeout: 5000,
+  }
+}
+```
+
+```js
+// Bad: ExecutionArgs from onSubscribe skips the builder's validation
+/** @override */
+composeServerHookHash () {
+  return {
+    onSubscribe: (context, message) => ({
+      schema,
+      document: parse(message.payload.query),
+    }),
+  }
+}
+```
+
 ## Finishing checklist
 
 - [ ] One engine per endpoint, extending the **app base** ([§1](#1-two-base-classes-put-app-common-settings-in-an-app-base-and-extend-it)); a member moves to the app base only when it is always the same for every endpoint, and `collectMiddleware()` stays in each engine.
@@ -686,3 +851,5 @@ An endpoint → port layout looks like this (roles, paths, and ports are illustr
 - [ ] Redis PubSub enabled on endpoints whose subscriptions are published by **another process** ([§5](#5-stub-vs-actual-engines-and-subscriptions-redis-vs-local)).
 - [ ] `postWorkersPath` set when the endpoint needs post-workers (`null` disables them) ([§7](#7-post-resolve-hooks-defineonresolved--postworkerspath)).
 - [ ] Engine **registered in `server/index.js`** with a unique port ([§8](#8-wiring-into-serverindexjs)).
+- [ ] An endpoint's `onConnect` refuses an `Origin` outside the list its `CorsExpressMiddleware` derived class reads, and the engine imports no `env` for it ([§9](#9-the-websocket-server-composeserverhookhash--graphqlserver)).
+- [ ] An endpoint that serves no subscription sets `config.graphqlServer.skipsWebSocket: true`; one that does refuses every non-subscription operation in `composeServerHookHash()`'s `onSubscribe`, returns `GraphQLError`s (never `ExecutionArgs`), and keeps `connectionInitWaitTimeout` in `config` ([§9](#9-the-websocket-server-composeserverhookhash--graphqlserver)).
