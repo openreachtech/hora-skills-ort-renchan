@@ -17,6 +17,9 @@ iteration engine, progress delivery, composition, job execution, and GraphQL int
 the `@openreachtech/mentsu-agent-loop-core` package family; see the **`hor-agent-loop` skill** for those. Do
 not re-explain the core package here — this skill is only the app layer on top of it.
 
+If what a turn needs is not known until the message is read (an open chat assistant), see
+**`/hor-chat-agent-loop`**.
+
 ## Grand principle: the procedure is code, the AI only judges inside a step
 
 An app agent here is a **`ProceduralAgentLoop`** whose steps are fixed in code (e.g. `plan → execute →
