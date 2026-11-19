@@ -56,6 +56,7 @@ Each skill lives at `kit/skills/<name>/`, directly under the skills directory, a
 | Skill | Summary |
 | :-- | :-- |
 | `hor-ai-agent-structure` | Structure an app-side AI agent on `mentsu-agent-loop-core`: a `ProceduralAgentLoop` subclass plus per-step `BaseAgentAction` subclasses under `app/agents/<name>/`. |
+| `hor-chat-agent-loop` | Build a chat assistant whose turn the model plans — planner, executor, loop monitor, responder — and draw the line between what code enforces and what the prompt decides. |
 | `hor-agent-loop` | Build an LLM agent loop with the three `@openreachtech/mentsu-agent-loop` packages — the core iteration engine, a BullMQ job runner, and a GraphQL mutation plus progress subscription. |
 | `hor-multi-llm-provider` | Support Claude / OpenAI / Gemini behind one abstraction: an abstract model processor, a base per vendor, a concrete class per model, a loader that picks one by model name, and an access route per way of reaching it (vendor API key, Vertex AI service account, Amazon Bedrock). |
 | `hor-light-rag` | Add lightweight RAG for agent documents without a vector database — a vector-first / LLM-fallback ranker over stored `Document` rows, plus a MySQL n-gram fulltext keyword index. |
