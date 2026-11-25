@@ -231,16 +231,16 @@ assert that invalid input raises the matching `InvalidXxx` through the run entry
 describe('EmailInsertableVariablesInputValidator', () => {
   describe('isValidOriginObjectCategoryId', () => {
     /* eslint-disable */
- },
-      {
-        input: {
-          originObjectCategory    const cases = [
+    const cases = [
       {
         input: {
           originObjectCategoryId: 1,
         },
         expected: true,
-     Id: '1',
+      },
+      {
+        input: {
+          originObjectCategoryId: '1',
         },
         expected: true,
       },
